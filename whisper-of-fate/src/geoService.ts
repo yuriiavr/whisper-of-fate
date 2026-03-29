@@ -9,4 +9,4 @@ export async function searchCity(query: string) {
     lat: parseFloat(item.lat),
     lon: parseFloat(item.lon),
   }));
-}
+} 
