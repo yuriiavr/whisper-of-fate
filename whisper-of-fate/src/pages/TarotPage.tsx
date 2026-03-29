@@ -118,7 +118,7 @@ export default function TarotPage() {
                 : "bg-gradient-to-r from-purple-700 to-magical-accent shadow-magical-accent/30 hover:shadow-magical-accent/50"
               }`}
             >
-              {isLoading ? "Духи міркують..." : "✨ Отримати пораду Gemini"}
+              {isLoading ? "Духи міркують..." : "✨ Отримати пораду"}
             </button>
           </div>
         </section>
