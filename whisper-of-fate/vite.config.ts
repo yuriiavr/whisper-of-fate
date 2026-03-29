@@ -12,4 +12,7 @@ export default defineConfig({
       include: [/node_modules/],
     },
   },
+  define: {
+    'import.meta.env.GEMINI_API_KEY': JSON.stringify(process.env.GEMINI_API_KEY)
+  }
 });

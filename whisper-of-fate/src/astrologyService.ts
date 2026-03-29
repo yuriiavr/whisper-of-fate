@@ -1,7 +1,5 @@
-// whisper-of-fate/src/astrologyService.ts
 import * as AstrologyModule from 'astrology-js';
 
-// Цей хак дозволяє витягнути конструктори з CommonJS модуля
 const Astrology = (AstrologyModule as any).default || AstrologyModule;
 
 export function getHoroscopeData(date: Date, latitude: number, longitude: number) {
