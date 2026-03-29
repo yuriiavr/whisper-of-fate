@@ -87,25 +87,23 @@ export default function TarotPage() {
   const handleDivine = async () => {
     if (!query.trim() || drawnCards.length === 0) return;
     setIsLoading(true);
-    setInterpretation("");
-    setKeyQuote("");
     try {
       const fullResponse = await getTarotInterpretation(query, drawnCards);
       const quoteMatch = fullResponse.match(/\[QUOTE\](.*?)\[\/QUOTE\]/s);
       let quote = "";
-      let text = fullResponse;
+      let mainText = fullResponse;
 
       if (quoteMatch) {
         quote = quoteMatch[1].trim();
-        setKeyQuote(quote);
-        text = fullResponse.replace(/\[QUOTE\].*?\[\/QUOTE\]/s, "").trim();
+        mainText = fullResponse.replace(/\[QUOTE\].*?\[\/QUOTE\]/s, "").trim();
+      } else {
+        quote = fullResponse.split(/[.!?]/)[0].trim();
       }
 
-      setInterpretation(text);
+      setKeyQuote(quote);
+      setInterpretation(mainText);
     } catch (error) {
-      setInterpretation(
-        "Вибачте, духи не змогли дати відповідь. Спробуйте пізніше.",
-      );
+      setInterpretation("Вибачте, духи не змогли дати відповідь.");
     } finally {
       setIsLoading(false);
     }
@@ -217,14 +215,16 @@ export default function TarotPage() {
               {isLoading ? "Духи міркують..." : "✨ Отримати пораду"}
             </button>
 
-            {interpretation && keyQuote && (
-              <button
-                onClick={handleShareToInstagram}
-                disabled={isSharing}
-                className={`px-8 py-5 rounded-full text-lg font-semibold text-black transition-all transform hover:scale-105 shadow-xl bg-white hover:bg-magical-gold disabled:bg-gray-400 flex items-center gap-2`}
-              >
-                {isSharing ? "📸 Малюємо..." : "📸 В Instagram / Threads"}
-              </button>
+            {interpretation && (
+              <div className="mt-8 flex justify-center">
+                <button
+                  onClick={handleShareToInstagram}
+                  disabled={isSharing}
+                  className="px-8 py-5 rounded-full text-lg font-semibold text-black bg-white hover:bg-magical-gold transition-all flex items-center gap-2"
+                >
+                  {isSharing ? "📸 Малюємо..." : "📸 В Instagram / Threads"}
+                </button>
+              </div>
             )}
           </div>
         </section>
