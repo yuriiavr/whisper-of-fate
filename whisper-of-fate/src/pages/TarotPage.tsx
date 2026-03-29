@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import { tarotDeck, type TarotCard } from "../data/tarotCards";
 import { getTarotInterpretation } from "../geminiService";
 
-const CARD_BACK_URL = "/back.jpg";
+const CARD_BACK_URL = "/whisper-of-fate/back.jpg";
 
 const MagicalCard = ({ card, isReversed, index }: { card: TarotCard; isReversed: boolean; index: number }) => {
   const [isFlipped, setIsFlipped] = useState(false);
