@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { type TarotCard } from "./data/tarotCards";
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const API_KEY = import.meta.env.GEMINI_API_KEY;
 
 if (!API_KEY) {
   console.error("API Key for Gemini is missing! Check your .env file.");
