@@ -89,21 +89,30 @@ export default function TarotPage() {
     setIsLoading(true);
     try {
       const fullResponse = await getTarotInterpretation(query, drawnCards);
-      const quoteMatch = fullResponse.match(/\[QUOTE\](.*?)\[\/QUOTE\]/s);
-      let quote = "";
-      let mainText = fullResponse;
+      console.log("Full AI Response:", fullResponse); // Для перевірки в консолі
 
-      if (quoteMatch) {
-        quote = quoteMatch[1].trim();
-        mainText = fullResponse.replace(/\[QUOTE\].*?\[\/QUOTE\]/s, "").trim();
+      const quoteMatch = fullResponse.match(/\[QUOTE\](.*?)\[\/QUOTE\]/s);
+      let finalQuote = "";
+      let finalText = fullResponse;
+
+      if (quoteMatch && quoteMatch[1].trim()) {
+        // Варіант А: ШІ дотримався інструкцій
+        finalQuote = quoteMatch[1].trim();
+        finalText = fullResponse.replace(/\[QUOTE\].*?\[\/QUOTE\]/s, "").trim();
       } else {
-        quote = fullResponse.split(/[.!?]/)[0].trim();
+        // Варіант Б (Запасний): Беремо перше речення до крапки
+        const sentences = fullResponse
+          .replace(/\[QUOTE\]|\[\/QUOTE\]/g, "")
+          .split(/[.!?]/);
+        finalQuote = sentences[0].trim() || "Ваше передбачення готове";
+        finalText = fullResponse.replace(/\[QUOTE\]|\[\/QUOTE\]/g, "").trim();
       }
 
-      setKeyQuote(quote);
-      setInterpretation(mainText);
+      setKeyQuote(finalQuote);
+      setInterpretation(finalText);
     } catch (error) {
-      setInterpretation("Вибачте, духи не змогли дати відповідь.");
+      console.error("Divine error:", error);
+      setInterpretation("Помилка зв'язку з духами.");
     } finally {
       setIsLoading(false);
     }
@@ -111,47 +120,72 @@ export default function TarotPage() {
 
   const handleShareToInstagram = async () => {
     const node = document.getElementById("share-story-template");
-    if (!node || drawnCards.length === 0 || !keyQuote) return;
+    console.log("🔍 Перевірка перед генерацією:");
+    console.log("- Шаблон:", !!node);
+    console.log("- Цитата:", keyQuote);
+
+    if (!node || drawnCards.length === 0 || !keyQuote) {
+      console.error("❌ Умови все ще не виконані");
+      return;
+    }
 
     setIsSharing(true);
     try {
+      console.log("📸 Починаємо генерацію PNG через toPng...");
       const dataUrl = await toPng(node, {
         quality: 0.95,
         backgroundColor: "#111",
+        cacheBust: true, // Додаємо, щоб уникнути проблем із кешем картинок
       });
+      console.log("✅ PNG згенеровано, довжина рядка:", dataUrl.length);
+
       const res = await fetch(dataUrl);
       const blob = await res.blob();
       const file = new File([blob], "tarot-prediction.png", {
         type: "image/png",
       });
+      console.log(
+        "📂 Файл підготовлено, розмір:",
+        (blob.size / 1024).toFixed(2),
+        "KB",
+      );
 
       if (
         navigator.share &&
         navigator.canShare &&
         navigator.canShare({ files: [file] })
       ) {
+        console.log("📱 Спроба відкрити системне меню Share...");
         await navigator.share({
           files: [file],
           title: "Мій розклад Таро",
           text: `Порада Оракула: "${keyQuote}"`,
         });
+        console.log("🏁 Share API викликано успішно");
       } else {
+        console.log(
+          "💻 Share API не підтримується, запускаємо скачування файлу...",
+        );
         const link = document.createElement("a");
         link.download = `whisper-of-fate-${new Date().getTime()}.png`;
         link.href = dataUrl;
+        document.body.appendChild(link); // Додаємо в DOM для надійності
         link.click();
+        document.body.removeChild(link);
+        console.log("🏁 Файл має почати завантаження");
       }
     } catch (error) {
-      console.error("Error generating image:", error);
+      console.error("🚨 Помилка всередині блоку try-catch:", error);
       alert("Вибачте, не вдалося створити картинку.");
     } finally {
       setIsSharing(false);
+      console.log("🔚 Процес завершено.");
     }
   };
 
   return (
     <div className="animate-in fade-in duration-700">
-      {drawnCards.length > 0 && keyQuote && (
+      {drawnCards.length > 0 && (
         <ShareTemplate drawnCards={drawnCards} quote={keyQuote} />
       )}
 
