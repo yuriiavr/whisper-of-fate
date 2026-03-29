@@ -1,0 +1,40 @@
+name: Deploy Whisper of Fate to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ⚙️
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: whisper-of-fate/package-lock.json
+
+      - name: Install Dependencies 🔧
+        run: npm install
+        working-directory: whisper-of-fate
+
+      - name: Build 🏗️
+        run: npm run build
+        working-directory: whisper-of-fate
+        env:
+          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: whisper-of-fate/dist
+          branch: gh-pages
