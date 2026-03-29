@@ -4,10 +4,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
   const { type, userQuery, drawnCards, userData, coords } = req.body;
-  
-  // Використовуємо ключ із налаштувань Vercel
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  // ВЕРСІЯ МОДЕЛІ ЯК У ТЕБЕ В КОДІ
   const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite-preview" });
 
   try {
