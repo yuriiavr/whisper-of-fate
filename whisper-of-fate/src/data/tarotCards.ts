@@ -6,7 +6,7 @@ export interface TarotCard {
   image: string;
 }
 
-const BASE_URL = "./public/cards/";
+const BASE_URL = "/public/cards/";
 
 export const tarotDeck: TarotCard[] = [
   // Major Arcana (Старші Аркани)
