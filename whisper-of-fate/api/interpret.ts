@@ -1,24 +1,50 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+  if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
   const { type, userQuery, drawnCards, userData, coords } = req.body;
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite-preview" });
+  
+  const model = genAI.getGenerativeModel({
+    model: "gemini-3.1-flash-lite-preview",
+    safetySettings: [
+      {
+        category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+        threshold: HarmBlockThreshold.BLOCK_NONE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        threshold: HarmBlockThreshold.BLOCK_NONE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        threshold: HarmBlockThreshold.BLOCK_NONE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold: HarmBlockThreshold.BLOCK_NONE,
+      },
+    ],
+  });
 
   try {
-    if (type === 'tarot') {
-      const positions = drawnCards.length === 1 
-        ? ["Карта дня / Основна енергія"] 
-        : ["Минуле (що призвело до ситуації)", "Теперішнє (стан справ зараз)", "Майбутнє (ймовірний розвиток)"];
+    if (type === "tarot") {
+      const positions =
+        drawnCards.length === 1
+          ? ["Карта дня / Основна енергія"]
+          : [
+              "Минуле (що призвело до ситуації)",
+              "Теперішнє (стан справ зараз)",
+              "Майбутнє (ймовірний розвиток)",
+            ];
 
       const cardsDescription = drawnCards
         .map((d, index) => {
           const positionName = positions[index] || `Позиція ${index + 1}`;
-          return `${index + 1}. Позиція: ${positionName}\n   Карта: ${d.card.nameEn} (${d.card.name})${d.isReversed ? ' - ПЕРЕВЕРНУТА' : ''}`;
+          return `${index + 1}. Позиція: ${positionName}\n   Карта: ${d.card.nameEn} (${d.card.name})${d.isReversed ? " - ПЕРЕВЕРНУТА" : ""}`;
         })
-        .join('\n\n');
+        .join("\n\n");
 
       const prompt = `
     Ти — досвідчений таролог та психолог. Користувач звернувся до тебе із запитом: "${userQuery}".
@@ -38,8 +64,7 @@ export default async function handler(req, res) {
 
       const result = await model.generateContent(prompt);
       return res.status(200).json({ text: result.response.text() });
-
-    } else if (type === 'natal') {
+    } else if (type === "natal") {
       const prompt = `
     Ти — професійний астролог. Розрахуй положення планет для:
     Ім'я: ${userData.name}, Дата: ${userData.date}, Час: ${userData.time}, Координати: ${coords.lat}, ${coords.lon}.
