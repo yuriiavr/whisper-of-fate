@@ -1,11 +1,15 @@
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
+import {
+  GoogleGenerativeAI,
+  HarmCategory,
+  HarmBlockThreshold,
+} from "@google/generative-ai";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
   const { type, userQuery, drawnCards, userData, coords } = req.body;
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  
+
   const model = genAI.getGenerativeModel({
     model: "gemini-3.1-flash-lite-preview",
     safetySettings: [
@@ -60,6 +64,8 @@ export default async function handler(req, res) {
     4. Можна не бути толерантним, якщо все погано - так і кажи.
 
     Відповідай українською мовою у форматі Markdown.
+
+    ВАЖЛИВО: На самому початку відповіді, ПЕРЕД основним текстом, напиши одну коротку, влучну та сильну фразу-пораду (максимум 10 слів), яка резюмує весь розклад. Загорни цю фразу суворо в теги [QUOTE]ось тут фраза[/QUOTE].
   `;
 
       const result = await model.generateContent(prompt);
