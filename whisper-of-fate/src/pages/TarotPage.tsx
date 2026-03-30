@@ -4,7 +4,6 @@ import { tarotDeck, type TarotCard } from "../data/tarotCards";
 import { getTarotInterpretation } from "../geminiService";
 
 const CARD_BACK_URL = "/back.jpg";
-const STORY_BG_URL = "/story-bg.png";
 const APP_LOGO_URL = "/logo.png";
 const QR_CODE_URL = "/qr-code.png";
 
@@ -12,25 +11,38 @@ const MagicalCard = ({
   card,
   isReversed,
   isRevealed,
+  delay,
 }: {
   card: TarotCard;
   isReversed: boolean;
   isRevealed: boolean;
+  delay: number;
 }) => {
+  const [shouldFlip, setShouldFlip] = useState(false);
+
+  useEffect(() => {
+    if (isRevealed) {
+      const timer = setTimeout(() => setShouldFlip(true), delay);
+      return () => clearTimeout(timer);
+    } else {
+      setShouldFlip(false);
+    }
+  }, [isRevealed, delay]);
+
   return (
-    <div className={`flip-card h-[400px] w-[240px] relative ${isRevealed ? "flipped" : ""}`}>
-      <div className="flip-card-inner w-full h-full shadow-2xl">
-        <div className="flip-card-front bg-magical-depth border-2 border-magical-accent p-1.5 flex items-center justify-center overflow-hidden rounded-2xl">
+    <div className={`flip-card h-[160px] w-[100px] md:h-[400px] md:w-[240px] relative ${shouldFlip ? "flipped" : ""}`}>
+      <div className="flip-card-inner w-full h-full shadow-[0_0_20px_rgba(168,85,247,0.4)] rounded-2xl border border-magical-accent/50">
+        <div className="flip-card-front bg-magical-depth p-1 flex items-center justify-center overflow-hidden rounded-2xl">
           <img
             src={CARD_BACK_URL}
             crossOrigin="anonymous"
             alt="Card Back"
-            className="w-full h-full object-cover rounded-md"
+            className="w-full h-full object-cover rounded-xl"
           />
         </div>
 
-        <div className="flip-card-back bg-magical-depth border border-gray-800 p-3 flex flex-col items-center overflow-hidden rounded-2xl">
-          <div className="relative w-full h-full rounded-lg overflow-hidden">
+        <div className="flip-card-back bg-magical-depth p-1 flex flex-col items-center overflow-hidden rounded-2xl">
+          <div className="relative w-full h-full rounded-xl overflow-hidden ring-2 ring-magical-gold/50 ring-inset">
             <img
               src={card.image}
               alt={card.nameEn}
@@ -38,11 +50,10 @@ const MagicalCard = ({
               className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 ${isReversed ? "rotate-180" : ""}`}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
-            <div className="absolute bottom-3 left-3 right-3 text-center">
-              <p className="text-xl font-bold text-white uppercase tracking-tight">{card.name}</p>
-              <p className="text-[10px] text-magical-gold uppercase opacity-80 tracking-widest">{card.nameEn}</p>
+            <div className="absolute bottom-1 md:bottom-3 left-1 right-1 text-center">
+              <p className="text-[10px] md:text-xl font-bold text-white uppercase tracking-tight leading-none">{card.name}</p>
               {isReversed && (
-                <p className="text-[10px] text-red-400 font-bold mt-1 tracking-wider">(ПЕРЕВЕРНУТА)</p>
+                <p className="text-[7px] md:text-[10px] text-red-400 font-bold mt-0.5 tracking-wider uppercase">Перевернута</p>
               )}
             </div>
           </div>
@@ -64,56 +75,62 @@ const ShareOverlay = ({
   onClose: () => void;
 }) => {
   return (
-    <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300">
       <button
         onClick={onClose}
-        className="absolute top-6 right-6 z-[110] text-white/50 hover:text-white text-4xl transition-colors"
+        className="absolute top-6 right-6 z-[110] text-white/50 hover:text-white text-4xl"
       >
         ✕
       </button>
 
-      <div
-        className="relative w-full max-w-[420px] aspect-[9/16] bg-cover bg-center rounded-[2.5rem] overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.3)] border border-white/10"
-        style={{ backgroundImage: `url(${STORY_BG_URL})` }}
-      >
-        <div className="absolute inset-0 flex flex-col items-center pt-14 pb-10 px-8 text-center bg-black/20">
-          <img src={APP_LOGO_URL} alt="Logo" className="w-44 mb-6 drop-shadow-lg" />
+      <div className="relative w-full max-w-[380px] aspect-[9/16] bg-gradient-to-b from-[#1a1a2e] to-[#0f0c29] rounded-[3rem] overflow-hidden shadow-[0_0_80px_rgba(168,85,247,0.2)] border border-white/10 flex flex-col p-8">
+        <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-500/30 via-transparent to-transparent"></div>
+        
+        <div className="relative z-10 flex flex-col h-full items-center">
+          <img src={APP_LOGO_URL} alt="Logo" className="w-32 mb-8 drop-shadow-lg" />
 
-          <p className="text-white/80 text-xs font-bold uppercase tracking-[0.2em] mb-12 px-4 leading-relaxed">
-            {query}
-          </p>
+          <div className="w-full bg-white/5 rounded-2xl p-4 border border-white/10 mb-8">
+            <p className="text-magical-gold text-[10px] font-bold uppercase tracking-widest mb-1 opacity-60 text-center">Ваше питання</p>
+            <p className="text-white text-sm font-medium leading-relaxed text-center">
+              {query}
+            </p>
+          </div>
 
-          <div className="flex gap-3 justify-center mb-10">
+          <div className="flex gap-2 justify-center mb-8">
             {cards.map((item, i) => (
               <div
                 key={i}
-                className={`relative w-24 aspect-[2/3.5] rounded-xl overflow-hidden shadow-2xl border border-white/20 transition-transform ${item.isReversed ? "rotate-180" : ""}`}
+                className={`relative w-20 aspect-[2/3.5] rounded-lg overflow-hidden shadow-2xl border border-magical-gold/30 ${item.isReversed ? "rotate-180" : ""}`}
               >
                 <img src={item.card.image} className="w-full h-full object-cover" alt="Card" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
               </div>
             ))}
           </div>
 
-          <div className="flex-1 flex items-center justify-center px-2">
-            <p className="text-white text-2xl md:text-3xl font-serif italic font-bold leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
-              {quote}
-            </p>
+          <div className="flex-1 flex items-center justify-center w-full px-2">
+            <div className="relative p-6 rounded-3xl bg-black/20 border border-white/5 backdrop-blur-sm w-full">
+              <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-magical-gold text-2xl">“</span>
+              <p className="text-white text-lg md:text-xl font-serif italic font-bold leading-snug text-center break-words">
+                {quote}
+              </p>
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-magical-gold text-2xl rotate-180">“</span>
+            </div>
           </div>
 
           <div className="mt-auto flex flex-col items-center gap-4">
-            <div className="p-2 bg-white/5 rounded-2xl backdrop-blur-sm border border-white/10">
-              <img src={QR_CODE_URL} alt="QR" className="w-16 h-16 opacity-90" />
+            <div className="p-2 bg-white rounded-xl">
+              <img src={QR_CODE_URL} alt="QR" className="w-12 h-12" />
             </div>
-            <p className="text-magical-gold text-[10px] font-bold tracking-widest uppercase opacity-70">
+            <p className="text-magical-gold text-[9px] font-bold tracking-[0.3em] uppercase opacity-50">
               whisper-of-fate.vercel.app
             </p>
           </div>
         </div>
       </div>
 
-      <div className="absolute bottom-8 text-white/40 text-sm font-medium tracking-wide animate-pulse">
-        Зроби скріншот, щоб поділитись ✨
+      <div className="absolute bottom-8 text-white/40 text-xs font-medium tracking-widest animate-pulse uppercase">
+        Скріншот для сторіз ✨
       </div>
     </div>
   );
@@ -143,7 +160,7 @@ export default function TarotPage() {
   useEffect(() => {
     const preloadImages = async () => {
       try {
-        const urlsToPreload = [CARD_BACK_URL, STORY_BG_URL, APP_LOGO_URL, QR_CODE_URL, ...tarotDeck.map((card) => card.image)];
+        const urlsToPreload = [CARD_BACK_URL, APP_LOGO_URL, QR_CODE_URL, ...tarotDeck.map((card) => card.image)];
         const loadImage = (url: string) => {
           return new Promise((resolve, reject) => {
             const img = new Image();
@@ -170,7 +187,6 @@ export default function TarotPage() {
     setInterpretation("");
     
     await new Promise(r => setTimeout(r, 300));
-    
     setIsLoading(true);
 
     const shuffled = [...tarotDeck].sort(() => 0.5 - Math.random());
@@ -207,24 +223,25 @@ export default function TarotPage() {
   };
 
   return (
-    <div className="animate-in fade-in duration-700 p-4 md:p-0">
-      <section className="mb-12 mt-8">
-        <div className="flex justify-center gap-4 md:gap-10 flex-wrap mb-10 min-h-[400px]">
+    <div className="animate-in fade-in duration-700 md:p-0 overflow-x-hidden">
+      <section className="mb-12 mt-4 md:mt-8">
+        <div className="flex justify-center gap-2 md:gap-10 mb-10 min-h-[160px] md:min-h-[400px]">
           {drawnCards.map((drawn, index) => (
             <MagicalCard
               key={index}
               card={drawn.card}
               isReversed={drawn.isReversed}
               isRevealed={areCardsRevealed}
+              delay={index * 600} 
             />
           ))}
         </div>
 
-        <div className="flex flex-col items-center gap-6">
+        <div className="flex flex-col items-center gap-4">
           <button
             onClick={handleDivine}
             disabled={isLoading}
-            className={`w-full max-w-sm py-5 rounded-3xl text-xl font-bold text-white transition-all transform active:scale-95 shadow-xl ${
+            className={`w-full max-w-sm py-4 md:py-5 rounded-3xl text-lg md:text-xl font-bold text-white transition-all transform active:scale-95 shadow-xl ${
               isLoading
                 ? "bg-gray-700 cursor-not-allowed"
                 : "bg-gradient-to-r from-purple-700 to-magical-accent shadow-magical-accent/30 hover:shadow-magical-accent/50"
@@ -236,7 +253,7 @@ export default function TarotPage() {
           {interpretation && !isLoading && (
             <button
               onClick={() => setShowShareOverlay(true)}
-              className="w-full max-w-xs py-4 rounded-3xl text-lg font-semibold text-black bg-white hover:bg-magical-gold transition-all flex items-center justify-center gap-2 animate-in fade-in zoom-in active:scale-95 shadow-lg"
+              className="w-full max-w-xs py-3.5 rounded-3xl text-md font-semibold text-black bg-white hover:bg-magical-gold transition-all flex items-center justify-center gap-2 animate-in fade-in zoom-in active:scale-95 shadow-lg"
             >
               📸 Поділитись
             </button>
@@ -244,37 +261,37 @@ export default function TarotPage() {
         </div>
       </section>
 
-      <section className="bg-magical-depth/60 border border-gray-800 p-6 md:p-10 rounded-[2.5rem] shadow-2xl mb-16 backdrop-blur-sm max-w-4xl mx-auto">
-        <div className="flex flex-col gap-8">
-          <div className="flex flex-col md:flex-row md:items-center gap-6 justify-between">
-            <h2 className="text-xl font-bold text-white/80 uppercase tracking-widest text-center md:text-left">
+      <section className="bg-magical-depth/60 border border-gray-800 p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl mb-16 backdrop-blur-sm max-w-4xl mx-auto">
+        <div className="flex flex-col gap-6 md:gap-8">
+          <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
+            <h2 className="text-sm md:text-xl font-bold text-white/80 uppercase tracking-widest text-center md:text-left">
               Налаштування
             </h2>
-            <div className="flex bg-black/40 p-1.5 rounded-2xl border border-white/5">
+            <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5 w-full md:w-auto">
               <button
                 onClick={() => setCardCount(1)}
-                className={`px-6 py-2.5 rounded-xl font-bold transition-all text-sm ${cardCount === 1 ? "bg-magical-accent text-white shadow-lg" : "text-gray-400 hover:text-white"}`}
+                className={`flex-1 md:flex-none px-4 md:px-6 py-2 rounded-xl font-bold transition-all text-xs md:text-sm ${cardCount === 1 ? "bg-magical-accent text-white" : "text-gray-400"}`}
               >
-                🃏 1 карта
+                1 карта
               </button>
               <button
                 onClick={() => setCardCount(3)}
-                className={`px-6 py-2.5 rounded-xl font-bold transition-all text-sm ${cardCount === 3 ? "bg-magical-accent text-white shadow-lg" : "text-gray-400 hover:text-white"}`}
+                className={`flex-1 md:flex-none px-4 md:px-6 py-2 rounded-xl font-bold transition-all text-xs md:text-sm ${cardCount === 3 ? "bg-magical-accent text-white" : "text-gray-400"}`}
               >
-                🎴 3 карти
+                3 карти
               </button>
             </div>
           </div>
 
-          <div className="w-full border-t border-white/10 pt-6">
-            <label className="block text-[10px] font-bold text-gray-500 tracking-[0.2em] uppercase mb-3 ml-2">
-              Ваше питання до Всесвіту
+          <div className="w-full border-t border-white/10 pt-4 md:pt-6">
+            <label className="block text-[10px] font-bold text-gray-500 tracking-[0.2em] uppercase mb-2 ml-2">
+              Ваше питання
             </label>
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full p-5 bg-black/30 text-white rounded-2xl border border-white/10 focus:border-magical-accent outline-none transition-all placeholder:text-gray-700 text-lg"
+              className="w-full p-4 md:p-5 bg-black/30 text-white rounded-2xl border border-white/10 focus:border-magical-accent outline-none transition-all text-md md:text-lg"
               placeholder="Що чекає мене завтра?"
             />
           </div>
@@ -282,13 +299,13 @@ export default function TarotPage() {
       </section>
 
       {interpretation && !isLoading && (
-        <section className="max-w-4xl mx-auto bg-magical-depth border border-white/5 p-6 md:p-12 rounded-[2.5rem] shadow-2xl animate-in slide-in-from-bottom-8 duration-1000 mb-20">
+        <section className="max-w-4xl mx-auto bg-magical-depth border border-white/5 p-6 md:p-12 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl animate-in slide-in-from-bottom-8 duration-1000 mb-20">
           <div className="flex items-center justify-center gap-4 mb-8">
              <div className="h-px flex-1 bg-gradient-to-r from-transparent to-magical-gold/30"></div>
              <span className="text-magical-gold text-2xl">✦</span>
              <div className="h-px flex-1 bg-gradient-to-l from-transparent to-magical-gold/30"></div>
           </div>
-          <div className="prose prose-invert prose-purple md:prose-lg max-w-none text-gray-300 leading-relaxed font-serif text-center md:text-left">
+          <div className="prose prose-invert prose-purple md:prose-lg max-w-none text-gray-300 leading-relaxed font-serif md:text-left prose-ul:list-none prose-ul:pl-0">
             <ReactMarkdown>{interpretation}</ReactMarkdown>
           </div>
         </section>
@@ -297,7 +314,7 @@ export default function TarotPage() {
       {isPreloading && (
         <div className="fixed inset-0 bg-magical-dark z-[200] flex flex-col items-center justify-center gap-4 backdrop-blur-sm">
           <div className="w-10 h-10 border-2 border-magical-accent border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-magical-gold text-xs font-bold uppercase tracking-[0.3em] animate-pulse">
+          <p className="text-magical-gold text-[10px] font-bold uppercase tracking-[0.3em] animate-pulse">
             Зв'язок з астралом...
           </p>
         </div>
