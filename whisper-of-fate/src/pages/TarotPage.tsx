@@ -212,7 +212,16 @@ export default function TarotPage() {
   return (
     <div className="animate-in fade-in duration-700">
       {drawnCards.length > 0 && (
-        <ShareTemplate drawnCards={drawnCards} quote={keyQuote} />
+        <div
+          style={{
+            position: "absolute",
+            left: "-9999px",
+            top: "0",
+            opacity: "0",
+          }}
+        >
+          <ShareTemplate drawnCards={drawnCards} quote={keyQuote} />
+        </div>
       )}
 
       <section className="bg-magical-depth/60 border border-gray-800 p-8 rounded-3xl shadow-2xl mb-16 backdrop-blur-sm">
