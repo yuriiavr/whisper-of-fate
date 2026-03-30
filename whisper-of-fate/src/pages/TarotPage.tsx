@@ -4,7 +4,6 @@ import { tarotDeck, type TarotCard } from "../data/tarotCards";
 import { getTarotInterpretation } from "../geminiService";
 
 const CARD_BACK_URL = "/back.jpg";
-const APP_LOGO_URL = "/logo.png";
 const QR_CODE_URL = "/qr-code.png";
 
 const MagicalCard = ({
@@ -105,16 +104,7 @@ const ShareOverlay = ({
         <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-500/30 via-transparent to-transparent"></div>
 
         <div className="relative z-10 flex flex-col h-full items-center">
-          <img
-            src={APP_LOGO_URL}
-            alt="Logo"
-            className="w-24 mb-6 drop-shadow-lg"
-          />
-
           <div className="w-full bg-white/5 rounded-2xl p-4 border border-white/10 mb-6">
-            <p className="text-magical-gold text-[10px] font-bold uppercase tracking-widest mb-1 opacity-60 text-center">
-              Ваше питання
-            </p>
             <p className="text-white text-sm font-medium leading-relaxed text-center italic">
               {query}
             </p>
@@ -161,7 +151,7 @@ const ShareOverlay = ({
               <img src={QR_CODE_URL} alt="QR" className="w-10 h-10" />
             </div>
             <p className="text-magical-gold text-[9px] font-bold tracking-[0.3em] uppercase opacity-50">
-              whisper-of-fate.vercel.app
+              Зроби свій розклад
             </p>
           </div>
         </div>
@@ -200,7 +190,6 @@ export default function TarotPage() {
       try {
         const urlsToPreload = [
           CARD_BACK_URL,
-          APP_LOGO_URL,
           QR_CODE_URL,
           ...tarotDeck.map((card) => card.image),
         ];
