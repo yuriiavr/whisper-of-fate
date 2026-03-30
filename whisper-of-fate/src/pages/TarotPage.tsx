@@ -132,6 +132,13 @@ export default function TarotPage() {
     setIsSharing(true);
     try {
       console.log("📸 Починаємо генерацію PNG через toPng...");
+      const sleep = (ms: number) =>
+        new Promise((resolve) => setTimeout(resolve, ms));
+
+      console.log("⏳ Чекаємо на рендер картинок...");
+      await sleep(500);
+
+      console.log("📸 Починаємо генерацію PNG...");
       const dataUrl = await toPng(node, {
         quality: 0.95,
         backgroundColor: "#111",
