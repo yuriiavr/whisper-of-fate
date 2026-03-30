@@ -142,7 +142,9 @@ export default function TarotPage() {
       setInterpretation(finalText);
     } catch (error) {
       console.error("Divine error:", error);
-      setInterpretation("🚨 Помилка зв'язку з духами. Спробуйте ще раз пізніше.");
+      setInterpretation(
+        "🚨 Помилка зв'язку з духами. Спробуйте ще раз пізніше.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -159,38 +161,93 @@ export default function TarotPage() {
     });
   };
 
-  const handleShareToInstagram = async () => {
-    const node = document.getElementById("share-story-template");
-    if (!node || drawnCards.length === 0 || !keyQuote) return;
+  const generateManualCanvas = async (
+    cards: { card: any; isReversed: boolean }[],
+    quote: string,
+  ): Promise<string> => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas context failed");
 
+    // 1. Налаштування розміру (Instagram Story)
+    canvas.width = 1080;
+    canvas.height = 1920;
+
+    // 2. Фон
+    ctx.fillStyle = "#111111";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 3. Малюємо карти
+    const cardWidth = 300;
+    const cardHeight = 500;
+    const gap = 40;
+    const totalWidth = cards.length * cardWidth + (cards.length - 1) * gap;
+    let startX = (canvas.width - totalWidth) / 2;
+    const startY = 400;
+
+    for (const item of cards) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      // Використовуємо твою функцію перетворення в Base64
+      img.src = await getBase64FromUrl(item.card.image);
+
+      await img.decode(); // Гарантуємо, що пікселі готові
+
+      ctx.save();
+      // Позиціонування для кожної карти
+      const centerX = startX + cardWidth / 2;
+      const centerY = startY + cardHeight / 2;
+      ctx.translate(centerX, centerY);
+
+      if (item.isReversed) {
+        ctx.rotate(Math.PI); // Поворот на 180 градусів
+      }
+
+      // Малюємо саму карту (з округленими кутами можна заморочитись пізніше)
+      ctx.drawImage(
+        img,
+        -cardWidth / 2,
+        -cardHeight / 2,
+        cardWidth,
+        cardHeight,
+      );
+      ctx.restore();
+
+      startX += cardWidth + gap;
+    }
+
+    // 4. Малюємо текст (Цитату)
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "bold 48px sans-serif";
+    ctx.textAlign = "center";
+
+    // Функція для переносу тексту (простий варіант)
+    const words = quote.split(" ");
+    let line = "";
+    let y = 1100;
+    for (let n = 0; n < words.length; n++) {
+      let testLine = line + words[n] + " ";
+      let metrics = ctx.measureText(testLine);
+      if (metrics.width > 900 && n > 0) {
+        ctx.fillText(line, canvas.width / 2, y);
+        line = words[n] + " ";
+        y += 60;
+      } else {
+        line = testLine;
+      }
+    }
+    ctx.fillText(line, canvas.width / 2, y);
+
+    return canvas.toDataURL("image/png");
+  };
+
+  const handleShareToInstagram = async () => {
+    if (drawnCards.length === 0 || !keyQuote) return;
     setIsSharing(true);
 
     try {
-      const images = Array.from(node.querySelectorAll("img"));
-      await Promise.all(
-        images.map(async (img) => {
-          if (!img.src.startsWith("data:")) {
-            try {
-              const b64 = await getBase64FromUrl(img.src);
-              img.src = b64;
-              await new Promise((resolve) => {
-                img.onload = resolve;
-                img.onerror = resolve;
-              });
-            } catch (e) {
-              console.warn("Base64 conversion failed:", img.src, e);
-            }
-          }
-        })
-      );
-
-      await new Promise((resolve) =>
-        requestAnimationFrame(() => requestAnimationFrame(resolve))
-      );
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      const canvas = await toCanvas(node, { pixelRatio: 2 });
-      const dataUrl = canvas.toDataURL("image/png");
+      // Прямий рендер через Canvas API
+      const dataUrl = await generateManualCanvas(drawnCards, keyQuote);
 
       if (!dataUrl || dataUrl === "data:,") throw new Error("Empty image");
 
@@ -209,16 +266,15 @@ export default function TarotPage() {
           text: `Оракул каже: "${keyQuote}"`,
         });
       } else {
+        // Fallback для завантаження
         const link = document.createElement("a");
         link.download = `tarot-whisper-${Date.now()}.png`;
         link.href = dataUrl;
-        document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
       }
     } catch (error) {
-      console.error("Sharing error:", error);
-      alert("Мобільний браузер заблокував рендер. Спробуйте ще раз.");
+      console.error("Manual render error:", error);
+      alert("Сталася помилка при створенні зображення.");
     } finally {
       setIsSharing(false);
     }
@@ -329,7 +385,8 @@ export default function TarotPage() {
       {interpretation && !isLoading && (
         <section className="max-w-5xl mx-auto bg-magical-depth border border-gray-800 p-10 md:p-16 rounded-[2rem] shadow-2xl animate-in slide-in-from-bottom-4 duration-1000 mb-20">
           <h3 className="text-4xl font-extrabold mb-10 text-white flex items-center gap-4 tracking-tighter">
-            <span className="text-magical-gold text-5xl">✦</span> Відповідь Оракула
+            <span className="text-magical-gold text-5xl">✦</span> Відповідь
+            Оракула
           </h3>
           <div className="prose prose-invert prose-purple prose-lg max-w-none text-gray-300 leading-relaxed font-serif">
             <ReactMarkdown>{interpretation}</ReactMarkdown>
