@@ -193,11 +193,18 @@ export default function TarotPage() {
 
       const logoW = 700;
       const logoH = logoImg.height * (logoW / logoImg.width);
-      ctx.drawImage(logoImg, (canvas.width - logoW) / 2, 100, logoW, logoH);
+      const logoY = 100;
+      ctx.drawImage(logoImg, (canvas.width - logoW) / 2, logoY, logoW, logoH);
+
+      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.textAlign = "center";
+      ctx.font = "bold 36px sans-serif";
+      const queryY = logoY + logoH + 60;
+      ctx.fillText(query.toUpperCase(), canvas.width / 2, queryY);
 
       const cardWidth = 360;
       const cardHeight = 640;
-      const cardY = 450;
+      const cardY = queryY + 80;
       const totalWidth = cards.length * cardWidth + (cards.length - 1) * 40;
       let currentX = (canvas.width - totalWidth) / 2;
 
@@ -230,7 +237,7 @@ export default function TarotPage() {
 
       ctx.fillStyle = "#FFFFFF";
       ctx.textAlign = "center";
-      ctx.font = "italic bold 42px 'Georgia', serif";
+      ctx.font = "italic bold 46px 'Georgia', serif";
 
       const wrapText = (
         c: CanvasRenderingContext2D,
@@ -311,7 +318,14 @@ export default function TarotPage() {
   return (
     <div className="animate-in fade-in duration-700 p-4 md:p-0">
       {drawnCards.length > 0 && keyQuote && (
-        <div style={{ position: "absolute", left: "-99999px", top: 0, zIndex: -100 }}>
+        <div
+          style={{
+            position: "absolute",
+            left: "-99999px",
+            top: 0,
+            zIndex: -100,
+          }}
+        >
           <ShareTemplate drawnCards={drawnCards} quote={keyQuote} />
         </div>
       )}
