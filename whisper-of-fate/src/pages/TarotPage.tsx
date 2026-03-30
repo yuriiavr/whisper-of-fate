@@ -215,7 +215,7 @@ export default function TarotPage() {
         <div
           style={{
             position: "absolute",
-            left: "-9999px",
+            left: "0",
             top: "0",
             opacity: "0",
           }}
