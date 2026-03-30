@@ -117,93 +117,97 @@ export default function TarotPage() {
   };
 
   const handleShareToInstagram = async () => {
-  const node = document.getElementById("share-story-template");
-  
-  console.log("🔍 Перевірка перед генерацією:");
-  console.log("- Шаблон знайдено:", !!node);
-  console.log("- Карт у масиві:", drawnCards.length);
-  console.log("- Цитата (keyQuote):", keyQuote);
+    const node = document.getElementById("share-story-template");
 
-  if (!node || drawnCards.length === 0 || !keyQuote) {
-    console.error("❌ Умови не виконані! Функція зупинена.");
-    return;
-  }
+    if (!node || drawnCards.length === 0 || !keyQuote) return;
 
-  setIsSharing(true);
-  
-  try {
-    const images = Array.from(node.querySelectorAll('img'));
-    const imagePromises = images.map(img => {
-      if (img.complete) return Promise.resolve();
-      return new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
+    setIsSharing(true);
+
+    try {
+      // 1. Форсуємо перемальовку перед скріншотом
+      await new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      );
+
+      const images = Array.from(node.querySelectorAll("img"));
+      await Promise.all(
+        images.map((img) =>
+          img.complete
+            ? Promise.resolve()
+            : new Promise((r) => {
+                img.onload = r;
+                img.onerror = r;
+              }),
+        ),
+      );
+
+      // 2. Збільшуємо паузу для шрифтів та стабілізації стилів
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const dataUrl = await toPng(node, {
+        quality: 0.95,
+        backgroundColor: "#111",
+        cacheBust: true,
+        pixelRatio: 2,
+        style: {
+          visibility: "visible",
+          display: "flex",
+          transform: "scale(1)", // Гарантуємо відсутність трансформацій
+        },
       });
-    });
 
-    console.log("⏳ Чекаємо на завантаження ассетів...");
-    await Promise.all(imagePromises);
+      console.log("🔗 Клікни сюди, щоб побачити результат:", dataUrl);
 
-    await new Promise((resolve) => setTimeout(resolve, 300)); 
-
-    console.log("📸 Починаємо генерацію PNG через toPng...");
-    
-    const dataUrl = await toPng(node, {
-      quality: 1,
-      backgroundColor: "#111",
-      cacheBust: true,
-      pixelRatio: 2,
-      style: {
-        visibility: 'visible',
-        display: 'flex'
+      if (!dataUrl || dataUrl === "data:,") {
+        throw new Error("Згенеровано пусте зображення");
       }
-    });
 
-    console.log("🔗 Клікни сюди, щоб побачити результат:", dataUrl);
+      console.log("✅ PNG згенеровано, довжина рядка:", dataUrl.length);
 
-    if (!dataUrl || dataUrl === "data:,") {
-      throw new Error("Згенеровано пусте зображення");
-    }
-
-    console.log("✅ PNG згенеровано, довжина рядка:", dataUrl.length);
-
-    const res = await fetch(dataUrl);
-    const blob = await res.blob();
-    const file = new File([blob], "tarot-prediction.png", { type: "image/png" });
-
-    console.log("📂 Файл підготовлено, розмір:", (blob.size / 1024).toFixed(2), "KB");
-
-    if (
-      navigator.share &&
-      navigator.canShare &&
-      navigator.canShare({ files: [file] })
-    ) {
-      console.log("📱 Спроба відкрити системне меню Share...");
-      await navigator.share({
-        files: [file],
-        title: "Мій розклад Таро",
-        text: `Порада Оракула: "${keyQuote}"`,
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const file = new File([blob], "tarot-prediction.png", {
+        type: "image/png",
       });
-      console.log("🏁 Share API викликано успішно");
-    } else {
-      console.log("💻 Share API не підтримується, запускаємо скачування...");
-      const link = document.createElement("a");
-      link.download = `whisper-of-fate-${new Date().getTime()}.png`;
-      link.href = dataUrl;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      console.log("🏁 Файл завантажено");
-    }
 
-  } catch (error) {
-    console.error("🚨 Помилка всередині блоку try-catch:", error);
-    alert("Не вдалося створити картинку. Спробуйте ще раз або перевірте підключення.");
-  } finally {
-    setIsSharing(false);
-    console.log("🔚 Процес завершено.");
-  }
-};
+      console.log(
+        "📂 Файл підготовлено, розмір:",
+        (blob.size / 1024).toFixed(2),
+        "KB",
+      );
+
+      if (
+        navigator.share &&
+        navigator.canShare &&
+        navigator.canShare({ files: [file] })
+      ) {
+        console.log("📱 Спроба відкрити системне меню Share...");
+        await navigator.share({
+          files: [file],
+          title: "Мій розклад Таро",
+          text: `Порада Оракула: "${keyQuote}"`,
+        });
+        console.log("🏁 Share API викликано успішно");
+      } else {
+        console.log("💻 Share API не підтримується, запускаємо скачування...");
+        const link = document.createElement("a");
+        link.download = `whisper-of-fate-${new Date().getTime()}.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        console.log("🏁 Файл завантажено");
+      }
+    } catch (error) {
+      console.error("🚨 Помилка всередині блоку try-catch:", error);
+      alert(
+        "Не вдалося створити картинку. Спробуйте ще раз або перевірте підключення.",
+      );
+    } finally {
+      setIsSharing(false);
+      console.log("🔚 Процес завершено.");
+    }
+  };
 
   return (
     <div className="animate-in fade-in duration-700">
@@ -258,29 +262,27 @@ export default function TarotPage() {
               />
             ))}
           </div>
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center gap-6">
             <button
               onClick={handleDivine}
               disabled={isLoading}
               className={`px-12 py-5 rounded-full text-xl font-bold text-white transition-all transform hover:scale-105 shadow-xl ${
                 isLoading
-                  ? "bg-gray-700 cursor-not-allowed"
-                  : "bg-gradient-to-r from-purple-700 to-magical-accent shadow-magical-accent/30 hover:shadow-magical-accent/50"
+                  ? "bg-gray-700"
+                  : "bg-gradient-to-r from-purple-700 to-magical-accent"
               }`}
             >
               {isLoading ? "Духи міркують..." : "✨ Отримати пораду"}
             </button>
 
             {interpretation && (
-              <div className="mt-8 flex justify-center">
-                <button
-                  onClick={handleShareToInstagram}
-                  disabled={isSharing}
-                  className="px-8 py-5 rounded-full text-lg font-semibold text-black bg-white hover:bg-magical-gold transition-all flex items-center gap-2"
-                >
-                  {isSharing ? "📸 Малюємо..." : "📸 В Instagram / Threads"}
-                </button>
-              </div>
+              <button
+                onClick={handleShareToInstagram}
+                disabled={isSharing}
+                className="px-8 py-5 rounded-full text-lg font-semibold text-black bg-white hover:bg-magical-gold transition-all flex items-center gap-2 animate-in fade-in zoom-in duration-500"
+              >
+                {isSharing ? "📸 Малюємо..." : "📸 В Instagram / Threads"}
+              </button>
             )}
           </div>
         </section>
