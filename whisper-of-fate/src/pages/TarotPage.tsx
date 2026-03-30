@@ -268,7 +268,7 @@ export default function TarotPage() {
     <div className="animate-in fade-in duration-700 p-4 md:p-0">
       {/* Прихований шаблон для генерації сторіз (за межами екрана) */}
       {drawnCards.length > 0 && keyQuote && (
-        <div style={{ position: 'absolute', left: '-9999px', top: 0, zIndex: -100 }}>
+        <div style={{ position: 'absolute', left: '0', top: 0, zIndex: -100 }}>
             <ShareTemplate drawnCards={drawnCards} quote={keyQuote} />
         </div>
       )}
