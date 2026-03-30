@@ -24,7 +24,7 @@ export const ShareTemplate: React.FC<ShareTemplateProps> = ({ drawnCards, quote 
         padding: '100px 60px',
         color: 'white',
         fontFamily: 'sans-serif',
-        position: 'absolute',
+        position: 'relative',
         left: '0',
         top: 0,
         background: 'linear-gradient(180deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
