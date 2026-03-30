@@ -172,28 +172,30 @@ export default function TarotPage() {
     canvas.width = 1080;
     canvas.height = 1920;
 
-    // 2. Фон
-    ctx.fillStyle = "#111111";
+    // 2. Фон (Магічна глибина)
+    ctx.fillStyle = "#111111"; // Замініть на свій bg-magical-depth
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 3. Малюємо карти
-    const cardWidth = 300;
-    const cardHeight = 500;
-    const gap = 40;
+    // --- Малюємо карти ---
+    const cardWidth = 320; // Трохи більше
+    const cardHeight = 540;
+    const gap = 50;
+    const borderRadius = 24; // Округлені кути
+
     const totalWidth = cards.length * cardWidth + (cards.length - 1) * gap;
     let startX = (canvas.width - totalWidth) / 2;
-    const startY = 400;
+    const startY = 450;
 
     for (const item of cards) {
       const img = new Image();
       img.crossOrigin = "anonymous";
-      // Використовуємо твою функцію перетворення в Base64
       img.src = await getBase64FromUrl(item.card.image);
 
-      await img.decode(); // Гарантуємо, що пікселі готові
+      await img.decode(); // Гарантуємо пікселі
 
       ctx.save();
-      // Позиціонування для кожної карти
+
+      // Позиціонування
       const centerX = startX + cardWidth / 2;
       const centerY = startY + cardHeight / 2;
       ctx.translate(centerX, centerY);
@@ -202,7 +204,56 @@ export default function TarotPage() {
         ctx.rotate(Math.PI); // Поворот на 180 градусів
       }
 
-      // Малюємо саму карту (з округленими кутами можна заморочитись пізніше)
+      // --- Малюємо стилі карти (Рамка та Тінь) ---
+
+      // 1. Тінь (Shadow-2xl)
+      ctx.shadowColor = "rgba(138, 43, 226, 0.4)"; // magical-accent/30
+      ctx.shadowBlur = 40;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 10;
+
+      // 2. Округлені кути для карти (Кліпінг)
+      ctx.beginPath();
+      ctx.moveTo(-cardWidth / 2 + borderRadius, -cardHeight / 2);
+      ctx.lineTo(cardWidth / 2 - borderRadius, -cardHeight / 2);
+      ctx.quadraticCurveTo(
+        cardWidth / 2,
+        -cardHeight / 2,
+        cardWidth / 2,
+        -cardHeight / 2 + borderRadius,
+      );
+      ctx.lineTo(cardWidth / 2, cardHeight / 2 - borderRadius);
+      ctx.quadraticCurveTo(
+        cardWidth / 2,
+        cardHeight / 2,
+        cardWidth / 2 - borderRadius,
+        cardHeight / 2,
+      );
+      ctx.lineTo(-cardWidth / 2 + borderRadius, cardHeight / 2);
+      ctx.quadraticCurveTo(
+        -cardWidth / 2,
+        cardHeight / 2,
+        -cardWidth / 2,
+        cardHeight / 2 - borderRadius,
+      );
+      ctx.lineTo(-cardWidth / 2, -cardHeight / 2 + borderRadius);
+      ctx.quadraticCurveTo(
+        -cardWidth / 2,
+        -cardHeight / 2,
+        -cardWidth / 2 + borderRadius,
+        -cardHeight / 2,
+      );
+      ctx.closePath();
+
+      ctx.fillStyle = "#1a1a1a"; // Фон карти (magical-depth)
+      ctx.fill();
+      ctx.clip(); // Кліпаємо картинку по кутах
+
+      // Прибираємо тінь для самої картинки, щоб вона не подвоїлася
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = "transparent";
+
+      // 3. Малюємо саму карту
       ctx.drawImage(
         img,
         -cardWidth / 2,
@@ -210,32 +261,104 @@ export default function TarotPage() {
         cardWidth,
         cardHeight,
       );
+
+      // 4. Градієнт поверх карти (як у вашому CSS)
+      const gradient = ctx.createLinearGradient(
+        0,
+        cardHeight / 2,
+        0,
+        -cardHeight / 2,
+      );
+      gradient.addColorStop(0, "rgba(0,0,0,0.9)"); // Чорний низ
+      gradient.addColorStop(0.5, "rgba(0,0,0,0)"); // Прозорий центр
+      ctx.fillStyle = gradient;
+      ctx.fillRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight);
+
+      ctx.restore(); // Повертаємо контекст
+
+      // 5. Рамка (після кліпінгу та restore)
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      if (item.isReversed) ctx.rotate(Math.PI);
+
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = "#C084FC"; // magical-accent
+
+      // Створення шляху для рамки (те саме, що й для кліпінгу)
+      ctx.beginPath();
+      ctx.moveTo(-cardWidth / 2 + borderRadius, -cardHeight / 2);
+      ctx.lineTo(cardWidth / 2 - borderRadius, -cardHeight / 2);
+      ctx.quadraticCurveTo(
+        cardWidth / 2,
+        -cardHeight / 2,
+        cardWidth / 2,
+        -cardHeight / 2 + borderRadius,
+      );
+      ctx.lineTo(cardWidth / 2, cardHeight / 2 - borderRadius);
+      ctx.quadraticCurveTo(
+        cardWidth / 2,
+        cardHeight / 2,
+        cardWidth / 2 - borderRadius,
+        cardHeight / 2,
+      );
+      ctx.lineTo(-cardWidth / 2 + borderRadius, cardHeight / 2);
+      ctx.quadraticCurveTo(
+        -cardWidth / 2,
+        cardHeight / 2,
+        -cardWidth / 2,
+        cardHeight / 2 - borderRadius,
+      );
+      ctx.lineTo(-cardWidth / 2, -cardHeight / 2 + borderRadius);
+      ctx.quadraticCurveTo(
+        -cardWidth / 2,
+        -cardHeight / 2,
+        -cardWidth / 2 + borderRadius,
+        -cardHeight / 2,
+      );
+      ctx.closePath();
+      ctx.stroke();
+
       ctx.restore();
 
       startX += cardWidth + gap;
     }
 
-    // 4. Малюємо текст (Цитату)
-    ctx.fillStyle = "#FFFFFF";
-    ctx.font = "bold 48px sans-serif";
+    // --- Малюємо текст (Цитату) ---
+    ctx.fillStyle = "#FFFFFF"; // Білий текст
+    ctx.font = "bold 56px sans-serif"; // Трохи більший
     ctx.textAlign = "center";
 
-    // Функція для переносу тексту (простий варіант)
-    const words = quote.split(" ");
-    let line = "";
-    let y = 1100;
-    for (let n = 0; n < words.length; n++) {
-      let testLine = line + words[n] + " ";
-      let metrics = ctx.measureText(testLine);
-      if (metrics.width > 900 && n > 0) {
-        ctx.fillText(line, canvas.width / 2, y);
-        line = words[n] + " ";
-        y += 60;
-      } else {
-        line = testLine;
+    // Виправляємо помилку "implicitly has an 'any' type"
+    const wrapText = (
+      ctx: CanvasRenderingContext2D,
+      text: string,
+      x: number,
+      y: number,
+      maxWidth: number,
+      lineHeight: number,
+    ) => {
+      const words = text.split(" ");
+      let line = "";
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + " ";
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && n > 0) {
+          ctx.fillText(line, x, y);
+          line = words[n] + " ";
+          y += lineHeight;
+        } else {
+          line = testLine;
+        }
       }
-    }
-    ctx.fillText(line, canvas.width / 2, y);
+      ctx.fillText(line, x, y);
+    };
+
+    wrapText(ctx, `✦ ${quote} ✦`, canvas.width / 2, 1200, 950, 70);
+
+    // (Optional) Додайте підпис бренду внизу
+    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    ctx.font = "32px sans-serif";
+    ctx.fillText("Created by Whisper of Fate", canvas.width / 2, 1800);
 
     return canvas.toDataURL("image/png");
   };
