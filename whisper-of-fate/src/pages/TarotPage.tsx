@@ -128,10 +128,6 @@ const ShareOverlay = ({
           </div>
         </div>
       </div>
-
-      <div className="absolute bottom-8 text-white/40 text-xs font-medium tracking-widest animate-pulse uppercase">
-        Скріншот для сторіз ✨
-      </div>
     </div>
   );
 };
