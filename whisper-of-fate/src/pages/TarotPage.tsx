@@ -206,7 +206,7 @@ export default function TarotPage() {
           // Якщо картинка вже в base64 або вже завантажена як blob - пропускаємо
           if (img.src.startsWith('data:')) return;
           
-          const base64 = await getBase64FromUrl(img.src);
+          const base64 = await getBase64Image(img.src);
           img.src = base64;
           
           // Чекаємо поки картинка оновиться з новим src
