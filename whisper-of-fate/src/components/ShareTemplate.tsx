@@ -71,7 +71,7 @@ export const ShareTemplate: React.FC<ShareTemplateProps> = ({ drawnCards, quote 
         border: '2px solid #a78bfa'
       }}>
         <p style={{ fontSize: '50px', fontWeight: '600', fontStyle: 'italic', lineHeight: '1.4', color: '#ddd' }}>
-          "{quote}"
+          {quote}
         </p>
       </div>
 

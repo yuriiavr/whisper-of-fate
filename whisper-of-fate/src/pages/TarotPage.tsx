@@ -163,112 +163,119 @@ export default function TarotPage() {
   };
 
   const generateManualCanvas = async (
-  cards: { card: TarotCard; isReversed: boolean }[],
-  quote: string
-): Promise<string> => {
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas context failed");
+    cards: { card: TarotCard; isReversed: boolean }[],
+    quote: string,
+  ): Promise<string> => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas context failed");
 
-  canvas.width = 1080;
-  canvas.height = 1920;
+    canvas.width = 1080;
+    canvas.height = 1920;
 
-  const loadImg = (url: string) =>
-    new Promise<HTMLImageElement>((resolve, reject) => {
-      const img = new Image();
-      img.src = url;
-      img.crossOrigin = "anonymous";
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
-    });
+    const loadImg = (url: string) =>
+      new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.src = url;
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+      });
 
-  try {
-    // Використовуємо константи, які ми оголосили вище
-    const [bgImg, logoImg, qrImg] = await Promise.all([
-      loadImg(STORY_BG_URL),
-      loadImg(APP_LOGO_URL),
-      loadImg(QR_CODE_URL),
-    ]);
+    try {
+      const [bgImg, logoImg, qrImg] = await Promise.all([
+        loadImg(STORY_BG_URL),
+        loadImg(APP_LOGO_URL),
+        loadImg(QR_CODE_URL),
+      ]);
 
-    // 1. Малюємо фон
-    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
-    // 2. Малюємо ЛОГОТИП зверху
-    const logoW = 700; 
-    const logoH = logoImg.height * (logoW / logoImg.width);
-    ctx.drawImage(logoImg, (canvas.width - logoW) / 2, 100, logoW, logoH);
+      const logoW = 700;
+      const logoH = logoImg.height * (logoW / logoImg.width);
+      ctx.drawImage(logoImg, (canvas.width - logoW) / 2, 100, logoW, logoH);
 
-    // 3. Малюємо КАРТИ (трохи нижче логотипу)
-    const cardWidth = 360;
-    const cardHeight = 640;
-    const cardY = 520; 
-    const totalWidth = cards.length * cardWidth + (cards.length - 1) * 40;
-    let currentX = (canvas.width - totalWidth) / 2;
+      const cardWidth = 360;
+      const cardHeight = 640;
+      const cardY = 450;
+      const totalWidth = cards.length * cardWidth + (cards.length - 1) * 40;
+      let currentX = (canvas.width - totalWidth) / 2;
 
-    for (const item of cards) {
-      const cardImg = new Image();
-      cardImg.src = await getBase64FromUrl(item.card.image);
-      await new Promise((resolve) => (cardImg.onload = resolve));
+      for (const item of cards) {
+        const cardImg = new Image();
+        cardImg.src = await getBase64FromUrl(item.card.image);
+        await new Promise((resolve) => (cardImg.onload = resolve));
 
-      ctx.save();
-      ctx.beginPath();
-      ctx.roundRect(currentX, cardY, cardWidth, cardHeight, 30);
-      ctx.clip();
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(currentX, cardY, cardWidth, cardHeight, 30);
+        ctx.clip();
 
-      if (item.isReversed) {
-        ctx.translate(currentX + cardWidth / 2, cardY + cardHeight / 2);
-        ctx.rotate(Math.PI);
-        ctx.drawImage(cardImg, -cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight);
-      } else {
-        ctx.drawImage(cardImg, currentX, cardY, cardWidth, cardHeight);
+        if (item.isReversed) {
+          ctx.translate(currentX + cardWidth / 2, cardY + cardHeight / 2);
+          ctx.rotate(Math.PI);
+          ctx.drawImage(
+            cardImg,
+            -cardWidth / 2,
+            -cardHeight / 2,
+            cardWidth,
+            cardHeight,
+          );
+        } else {
+          ctx.drawImage(cardImg, currentX, cardY, cardWidth, cardHeight);
+        }
+        ctx.restore();
+        currentX += cardWidth + 40;
       }
-      ctx.restore();
-      currentX += cardWidth + 40;
+
+      ctx.fillStyle = "#FFFFFF";
+      ctx.textAlign = "center";
+      ctx.font = "italic bold 46px 'Georgia', serif";
+
+      const wrapText = (
+        c: CanvasRenderingContext2D,
+        t: string,
+        x: number,
+        y: number,
+        mw: number,
+        lh: number,
+      ) => {
+        const words = t.split(" ");
+        let line = "";
+        for (let n = 0; n < words.length; n++) {
+          const testLine = line + words[n] + " ";
+          if (c.measureText(testLine).width > mw && n > 0) {
+            c.fillText(line, x, y);
+            line = words[n] + " ";
+            y += lh;
+          } else {
+            line = testLine;
+          }
+        }
+        c.fillText(line, x, y);
+      };
+
+      wrapText(ctx, quote, canvas.width / 2, 1320, 850, 70);
+
+      const qrSize = 180;
+      ctx.drawImage(qrImg, (canvas.width - qrSize) / 2, 1620, qrSize, qrSize);
+
+      ctx.fillStyle = "#FFD700";
+      ctx.font = "bold 32px sans-serif";
+      ctx.fillText("whisper-of-fate.vercel.app", canvas.width / 2, 1850);
+
+      return canvas.toDataURL("image/png");
+    } catch (err) {
+      console.error("Canvas render error:", err);
+      throw err;
     }
-
-    // 4. ТЕКСТ ЦИТАТИ (піднято вище)
-    ctx.fillStyle = "#FFFFFF";
-    ctx.textAlign = "center";
-    ctx.font = "italic bold 54px 'Georgia', serif";
-
-    const wrapText = (c: CanvasRenderingContext2D, t: string, x: number, y: number, mw: number, lh: number) => {
-      const words = t.split(" ");
-      let line = "";
-      for (let n = 0; n < words.length; n++) {
-        const testLine = line + words[n] + " ";
-        if (c.measureText(testLine).width > mw && n > 0) {
-          c.fillText(line, x, y);
-          line = words[n] + " ";
-          y += lh;
-        } else { line = testLine; }
-      }
-      c.fillText(line, x, y);
-    };
-
-    // y = 1320 — це якраз на рівні плашки зі скріншота
-    wrapText(ctx, `"${quote}"`, canvas.width / 2, 1320, 850, 80);
-
-    // 5. QR-КОД ТА ЛІНК
-    const qrSize = 180;
-    ctx.drawImage(qrImg, (canvas.width - qrSize) / 2, 1620, qrSize, qrSize);
-
-    ctx.fillStyle = "#FFD700"; // Золотистий колір для посилання
-    ctx.font = "bold 32px sans-serif";
-    ctx.fillText("whisper-of-fate.vercel.app", canvas.width / 2, 1850);
-
-    return canvas.toDataURL("image/png");
-  } catch (err) {
-    console.error("Canvas render error:", err);
-    throw err;
-  }
-};
+  };
 
   const handleShareToInstagram = async () => {
     if (drawnCards.length === 0 || !keyQuote) return;
     setIsSharing(true);
 
     try {
-      // Прямий рендер через Canvas API
       const dataUrl = await generateManualCanvas(drawnCards, keyQuote);
 
       if (!dataUrl || dataUrl === "data:,") throw new Error("Empty image");
@@ -288,7 +295,6 @@ export default function TarotPage() {
           text: `Оракул каже: "${keyQuote}"`,
         });
       } else {
-        // Fallback для завантаження
         const link = document.createElement("a");
         link.download = `tarot-whisper-${Date.now()}.png`;
         link.href = dataUrl;
