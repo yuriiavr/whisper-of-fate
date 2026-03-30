@@ -1,8 +1,8 @@
-export async function getTarotInterpretation(userQuery: string, drawnCards: any[]) {
+export async function getTarotInterpretation(userQuery: string, drawnCards: any[], isTrollMode: boolean) {
   const response = await fetch('/api/interpret', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'tarot', userQuery, drawnCards })
+    body: JSON.stringify({ type: 'tarot', userQuery, drawnCards, isTrollMode })
   });
   const data = await response.json();
   return data.text;

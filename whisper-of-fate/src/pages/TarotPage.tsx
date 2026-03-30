@@ -163,6 +163,7 @@ const ShareOverlay = ({
 export default function TarotPage() {
   const [query, setQuery] = useState<string>("Що чекає мене завтра?");
   const [cardCount, setCardCount] = useState<number>(3);
+  const [isTrollMode, setIsTrollMode] = useState<boolean>(false);
   const [drawnCards, setDrawnCards] = useState<
     { card: TarotCard; isReversed: boolean }[]
   >([]);
@@ -230,7 +231,7 @@ export default function TarotPage() {
     setDrawnCards(selected);
 
     try {
-      const fullResponse = await getTarotInterpretation(query, selected);
+      const fullResponse = await getTarotInterpretation(query, selected, isTrollMode);
       const quoteMatch = fullResponse.match(/\[QUOTE\](.*?)\[\/QUOTE\]/s);
       let finalQuote = "";
       let finalText = fullResponse;
@@ -302,19 +303,37 @@ export default function TarotPage() {
             <h2 className="text-sm md:text-xl font-bold text-white/80 uppercase tracking-widest text-center md:text-left">
               Налаштування
             </h2>
-            <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5 w-full md:w-auto">
-              <button
-                onClick={() => setCardCount(1)}
-                className={`flex-1 md:flex-none px-4 md:px-6 py-2 rounded-xl font-bold transition-all text-xs md:text-sm ${cardCount === 1 ? "bg-magical-accent text-white" : "text-gray-400"}`}
-              >
-                1 карта
-              </button>
-              <button
-                onClick={() => setCardCount(3)}
-                className={`flex-1 md:flex-none px-4 md:px-6 py-2 rounded-xl font-bold transition-all text-xs md:text-sm ${cardCount === 3 ? "bg-magical-accent text-white" : "text-gray-400"}`}
-              >
-                3 карти
-              </button>
+            
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5 w-full md:w-auto">
+                <button
+                  onClick={() => setIsTrollMode(false)}
+                  className={`flex-1 md:flex-none px-4 md:px-6 py-2 rounded-xl font-bold transition-all text-xs md:text-sm ${!isTrollMode ? "bg-magical-accent text-white" : "text-gray-400"}`}
+                >
+                  Серйозний
+                </button>
+                <button
+                  onClick={() => setIsTrollMode(true)}
+                  className={`flex-1 md:flex-none px-4 md:px-6 py-2 rounded-xl font-bold transition-all text-xs md:text-sm ${isTrollMode ? "bg-red-600 text-white shadow-[0_0_15px_rgba(220,38,38,0.4)]" : "text-gray-400"}`}
+                >
+                  Стібний 🔥
+                </button>
+              </div>
+
+              <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5 w-full md:w-auto">
+                <button
+                  onClick={() => setCardCount(1)}
+                  className={`flex-1 md:flex-none px-4 md:px-6 py-2 rounded-xl font-bold transition-all text-xs md:text-sm ${cardCount === 1 ? "bg-magical-accent text-white" : "text-gray-400"}`}
+                >
+                  1 карта
+                </button>
+                <button
+                  onClick={() => setCardCount(3)}
+                  className={`flex-1 md:flex-none px-4 md:px-6 py-2 rounded-xl font-bold transition-all text-xs md:text-sm ${cardCount === 3 ? "bg-magical-accent text-white" : "text-gray-400"}`}
+                >
+                  3 карти
+                </button>
+              </div>
             </div>
           </div>
 
