@@ -5,6 +5,7 @@ import { getTarotInterpretation } from "../geminiService";
 import { ShareTemplate } from "../components/ShareTemplate";
 
 const CARD_BACK_URL = "/back.jpg";
+const STORY_BG_URL = "/story-bg.png";
 
 const MagicalCard = ({
   card,
@@ -149,7 +150,7 @@ export default function TarotPage() {
     }
   };
 
- const getBase64FromUrl = async (url: string): Promise<string> => {
+  const getBase64FromUrl = async (url: string): Promise<string> => {
     const data = await fetch(url);
     const blob = await data.blob();
     return new Promise((resolve) => {
@@ -159,105 +160,104 @@ export default function TarotPage() {
     });
   };
 
-  // --- ЯКІСНИЙ РЕНДЕР ДЛЯ INSTAGRAM ---
-  const generateManualCanvas = async (cards: any[], quote: string): Promise<string> => {
+  const generateManualCanvas = async (
+    cards: { card: TarotCard; isReversed: boolean }[],
+    quote: string,
+  ): Promise<string> => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas fail");
 
+    // Стандарт Instagram Stories
     canvas.width = 1080;
     canvas.height = 1920;
 
-    // Фон (Глибокий магічний колір)
-    ctx.fillStyle = "#0a0a0c"; 
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // 1. Завантажуємо фонове зображення
+    const bgImg = new Image();
+    bgImg.src = STORY_BG_URL; // Твій ідеальний фон зі скріншота
+    bgImg.crossOrigin = "anonymous";
+    await new Promise((r) => (bgImg.onload = r));
+    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
-    const cardWidth = 400;
-    const cardHeight = 680;
-    const borderRadius = 30;
-    
-    // Центрування карт
-    const totalWidth = cards.length * cardWidth + (cards.length - 1) * 40;
-    let currentX = (canvas.width - totalWidth) / 2;
-    const startY = 400;
+    // 2. Параметри карти (підбираємо під "віконце" на твоєму фоні)
+    const cardWidth = 360;
+    const cardHeight = 640;
+    const cardX = (canvas.width - cardWidth) / 2;
+    const cardY = 480; // Координата "віконця" на скріні
+    const borderRadius = 24;
 
-    for (const item of cards) {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.src = await getBase64FromUrl(item.card.image);
-      await new Promise(r => img.onload = r);
+    if (cards.length > 0) {
+      const item = cards[0]; // Малюємо першу карту (або цикл для трьох)
+      const cardImg = new Image();
+      cardImg.src = await getBase64FromUrl(item.card.image);
+      cardImg.crossOrigin = "anonymous";
+      await new Promise((r) => (cardImg.onload = r));
 
       ctx.save();
-      
-      // Малюємо тінь карти
-      ctx.shadowColor = "rgba(139, 92, 246, 0.5)";
-      ctx.shadowBlur = 50;
-      
-      // Закруглення (Clip)
+
+      // Створюємо маску для закруглених кутів карти
       ctx.beginPath();
-      ctx.roundRect(currentX, startY, cardWidth, cardHeight, borderRadius);
-      ctx.fill(); // Малюємо підкладку для тіні
+      ctx.roundRect(cardX, cardY, cardWidth, cardHeight, borderRadius);
       ctx.clip();
 
-      // Малюємо саму карту (з поворотом якщо reversed)
       if (item.isReversed) {
-        ctx.translate(currentX + cardWidth / 2, startY + cardHeight / 2);
+        ctx.translate(cardX + cardWidth / 2, cardY + cardHeight / 2);
         ctx.rotate(Math.PI);
-        ctx.drawImage(img, -cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight);
+        ctx.drawImage(
+          cardImg,
+          -cardWidth / 2,
+          -cardHeight / 2,
+          cardWidth,
+          cardHeight,
+        );
       } else {
-        ctx.drawImage(img, currentX, startY, cardWidth, cardHeight);
+        ctx.drawImage(cardImg, cardX, cardY, cardWidth, cardHeight);
       }
-
-      // Градієнт затемнення знизу
-      const grad = ctx.createLinearGradient(0, startY + cardHeight, 0, startY);
-      grad.addColorStop(0, "rgba(0,0,0,0.8)");
-      grad.addColorStop(0.4, "transparent");
-      ctx.fillStyle = grad;
-      ctx.fillRect(currentX, startY, cardWidth, cardHeight);
 
       ctx.restore();
-      
-      // Рамка карти
-      ctx.strokeStyle = "#C084FC";
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.roundRect(currentX, startY, cardWidth, cardHeight, borderRadius);
-      ctx.stroke();
 
-      currentX += cardWidth + 40;
+      ctx.strokeStyle = "rgba(192, 132, 252, 0.3)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
     }
 
-    // Текст цитати
+    // 3. Додаємо текст (Цитата)
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "bold 52px serif";
     ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    ctx.font = "italic bold 48px 'Georgia', serif"; 
 
-    const wrapText = (c: CanvasRenderingContext2D, t: string, x: number, y: number, mw: number, lh: number) => {
-      const words = t.split(" ");
+    // Функція обгортки тексту з виправленими типами
+    const wrapText = (
+      context: CanvasRenderingContext2D,
+      text: string,
+      x: number,
+      y: number,
+      maxWidth: number,
+      lineHeight: number,
+    ) => {
+      const words = text.split(" ");
       let line = "";
       let currentY = y;
+
       for (let n = 0; n < words.length; n++) {
         const testLine = line + words[n] + " ";
-        if (c.measureText(testLine).width > mw && n > 0) {
-          c.fillText(line, x, currentY);
+        const metrics = context.measureText(testLine);
+        const testWidth = metrics.width;
+        if (testWidth > maxWidth && n > 0) {
+          context.fillText(line, x, currentY);
           line = words[n] + " ";
-          currentY += lh;
-        } else { line = testLine; }
+          currentY += lineHeight;
+        } else {
+          line = testLine;
+        }
       }
-      c.fillText(line, x, currentY);
+      context.fillText(line, x, currentY);
     };
 
-    wrapText(ctx, `"${quote}"`, canvas.width / 2, 1300, 900, 75);
-
-    // Підпис
-    ctx.fillStyle = "#C084FC";
-    ctx.font = "30px sans-serif";
-    ctx.fillText("whisper-of-fate.vercel.app", canvas.width / 2, 1750);
+    wrapText(ctx, `"${quote}"`, canvas.width / 2, 1450, 800, 70);
 
     return canvas.toDataURL("image/png");
   };
-
 
   const handleShareToInstagram = async () => {
     if (drawnCards.length === 0 || !keyQuote) return;
