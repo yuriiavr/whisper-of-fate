@@ -12,11 +12,13 @@ const MagicalCard = ({
   isReversed,
   isRevealed,
   delay,
+  isLarge,
 }: {
   card: TarotCard;
   isReversed: boolean;
   isRevealed: boolean;
   delay: number;
+  isLarge?: boolean;
 }) => {
   const [shouldFlip, setShouldFlip] = useState(false);
 
@@ -29,9 +31,15 @@ const MagicalCard = ({
     }
   }, [isRevealed, delay]);
 
+  const sizeClasses = isLarge
+    ? "h-[280px] w-[180px] md:h-[550px] md:w-[330px]"
+    : "h-[160px] w-[100px] md:h-[400px] md:w-[240px]";
+
   return (
-    <div className={`flip-card h-[160px] w-[100px] md:h-[400px] md:w-[240px] relative ${shouldFlip ? "flipped" : ""}`}>
-      <div className="flip-card-inner w-full h-full shadow-[0_0_20px_rgba(168,85,247,0.4)] rounded-2xl border border-magical-accent/50">
+    <div
+      className={`flip-card ${sizeClasses} relative ${shouldFlip ? "flipped" : ""}`}
+    >
+      <div className="flip-card-inner w-full h-full shadow-[0_0_30px_rgba(168,85,247,0.4)] rounded-2xl border border-magical-accent/50">
         <div className="flip-card-front bg-magical-depth p-1 flex items-center justify-center overflow-hidden rounded-2xl">
           <img
             src={CARD_BACK_URL}
@@ -50,10 +58,18 @@ const MagicalCard = ({
               className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 ${isReversed ? "rotate-180" : ""}`}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
-            <div className="absolute bottom-1 md:bottom-3 left-1 right-1 text-center">
-              <p className="text-[10px] md:text-xl font-bold text-white uppercase tracking-tight leading-none">{card.name}</p>
+            <div className="absolute bottom-2 md:bottom-4 left-1 right-1 text-center">
+              <p
+                className={`${isLarge ? "text-sm md:text-2xl" : "text-[10px] md:text-xl"} font-bold text-white uppercase tracking-tight leading-none`}
+              >
+                {card.name}
+              </p>
               {isReversed && (
-                <p className="text-[7px] md:text-[10px] text-red-400 font-bold mt-0.5 tracking-wider uppercase">Перевернута</p>
+                <p
+                  className={`${isLarge ? "text-[9px] md:text-xs" : "text-[7px] md:text-[10px]"} text-red-400 font-bold mt-1 tracking-wider uppercase`}
+                >
+                  Перевернута
+                </p>
               )}
             </div>
           </div>
@@ -74,53 +90,75 @@ const ShareOverlay = ({
   quote: string;
   onClose: () => void;
 }) => {
+  const isSingle = cards.length === 1;
+
   return (
-    <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300 overflow-y-auto">
       <button
         onClick={onClose}
-        className="absolute top-6 right-6 z-[110] text-white/50 hover:text-white text-4xl"
+        className="absolute top-4 right-6 z-[110] text-white/30 hover:text-white text-4xl p-2"
       >
         ✕
       </button>
 
-      <div className="relative w-full max-w-[380px] aspect-[9/16] bg-gradient-to-b from-[#1a1a2e] to-[#0f0c29] rounded-[3rem] overflow-hidden shadow-[0_0_80px_rgba(168,85,247,0.2)] border border-white/10 flex flex-col p-8">
+      <div className="relative w-full max-w-[380px] aspect-[9/16] bg-gradient-to-b from-[#1a1a2e] to-[#0f0c29] rounded-[3rem] overflow-hidden shadow-2xl border border-white/10 flex flex-col p-8 mt-12 mb-4">
         <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-500/30 via-transparent to-transparent"></div>
-        
-        <div className="relative z-10 flex flex-col h-full items-center">
-          <img src={APP_LOGO_URL} alt="Logo" className="w-32 mb-8 drop-shadow-lg" />
 
-          <div className="w-full bg-white/5 rounded-2xl p-4 border border-white/10 mb-8">
-            <p className="text-magical-gold text-[10px] font-bold uppercase tracking-widest mb-1 opacity-60 text-center">Ваше питання</p>
-            <p className="text-white text-sm font-medium leading-relaxed text-center">
+        <div className="relative z-10 flex flex-col h-full items-center">
+          <img
+            src={APP_LOGO_URL}
+            alt="Logo"
+            className="w-24 mb-6 drop-shadow-lg"
+          />
+
+          <div className="w-full bg-white/5 rounded-2xl p-4 border border-white/10 mb-6">
+            <p className="text-magical-gold text-[10px] font-bold uppercase tracking-widest mb-1 opacity-60 text-center">
+              Ваше питання
+            </p>
+            <p className="text-white text-sm font-medium leading-relaxed text-center italic">
               {query}
             </p>
           </div>
 
-          <div className="flex gap-2 justify-center mb-8">
+          <div className="flex gap-3 justify-center mb-6">
             {cards.map((item, i) => (
               <div
                 key={i}
-                className={`relative w-20 aspect-[2/3.5] rounded-lg overflow-hidden shadow-2xl border border-magical-gold/30 ${item.isReversed ? "rotate-180" : ""}`}
+                className={`relative rounded-xl overflow-hidden shadow-2xl border border-magical-gold/30 ${
+                  isSingle ? "w-44 aspect-[2/3.2]" : "w-20 aspect-[2/3.5]"
+                } ${item.isReversed ? "rotate-180" : ""}`}
               >
-                <img src={item.card.image} className="w-full h-full object-cover" alt="Card" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-magical-depth p-1 rounded-2xl border border-magical-accent/50 shadow-[0_0_15px_rgba(168,85,247,0.5)]">
+                  <div className="relative w-full h-full rounded-xl overflow-hidden ring-2 ring-magical-gold/50 ring-inset">
+                    <img
+                      src={item.card.image}
+                      className="w-full h-full object-cover"
+                      alt="Card"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                  </div>
+                </div>
               </div>
             ))}
           </div>
 
           <div className="flex-1 flex items-center justify-center w-full px-2">
             <div className="relative p-6 rounded-3xl bg-black/20 border border-white/5 backdrop-blur-sm w-full">
-              <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-magical-gold text-2xl">“</span>
+              <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-magical-gold text-2xl">
+                “
+              </span>
               <p className="text-white text-lg md:text-xl font-serif italic font-bold leading-snug text-center break-words">
                 {quote}
               </p>
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-magical-gold text-2xl rotate-180">“</span>
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-magical-gold text-2xl rotate-180">
+                “
+              </span>
             </div>
           </div>
 
-          <div className="mt-auto flex flex-col items-center gap-4">
-            <div className="p-2 bg-white rounded-xl">
-              <img src={QR_CODE_URL} alt="QR" className="w-12 h-12" />
+          <div className="mt-auto pt-6 flex flex-col items-center gap-4">
+            <div className="p-1.5 bg-white rounded-xl">
+              <img src={QR_CODE_URL} alt="QR" className="w-10 h-10" />
             </div>
             <p className="text-magical-gold text-[9px] font-bold tracking-[0.3em] uppercase opacity-50">
               whisper-of-fate.vercel.app
@@ -135,7 +173,9 @@ const ShareOverlay = ({
 export default function TarotPage() {
   const [query, setQuery] = useState<string>("Що чекає мене завтра?");
   const [cardCount, setCardCount] = useState<number>(3);
-  const [drawnCards, setDrawnCards] = useState<{ card: TarotCard; isReversed: boolean }[]>([]);
+  const [drawnCards, setDrawnCards] = useState<
+    { card: TarotCard; isReversed: boolean }[]
+  >([]);
   const [interpretation, setInterpretation] = useState<string>("");
   const [keyQuote, setKeyQuote] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -144,10 +184,12 @@ export default function TarotPage() {
   const [showShareOverlay, setShowShareOverlay] = useState<boolean>(false);
 
   useEffect(() => {
-    const placeholders = Array(cardCount).fill(null).map(() => ({
-      card: tarotDeck[0], 
-      isReversed: false,
-    }));
+    const placeholders = Array(cardCount)
+      .fill(null)
+      .map(() => ({
+        card: tarotDeck[0],
+        isReversed: false,
+      }));
     setDrawnCards(placeholders);
     setAreCardsRevealed(false);
     setInterpretation("");
@@ -156,7 +198,12 @@ export default function TarotPage() {
   useEffect(() => {
     const preloadImages = async () => {
       try {
-        const urlsToPreload = [CARD_BACK_URL, APP_LOGO_URL, QR_CODE_URL, ...tarotDeck.map((card) => card.image)];
+        const urlsToPreload = [
+          CARD_BACK_URL,
+          APP_LOGO_URL,
+          QR_CODE_URL,
+          ...tarotDeck.map((card) => card.image),
+        ];
         const loadImage = (url: string) => {
           return new Promise((resolve, reject) => {
             const img = new Image();
@@ -178,11 +225,11 @@ export default function TarotPage() {
 
   const handleDivine = async () => {
     if (!query.trim()) return;
-    
+
     setAreCardsRevealed(false);
     setInterpretation("");
-    
-    await new Promise(r => setTimeout(r, 300));
+
+    await new Promise((r) => setTimeout(r, 300));
     setIsLoading(true);
 
     const shuffled = [...tarotDeck].sort(() => 0.5 - Math.random());
@@ -203,7 +250,9 @@ export default function TarotPage() {
         finalQuote = quoteMatch[1].trim();
         finalText = fullResponse.replace(/\[QUOTE\].*?\[\/QUOTE\]/s, "").trim();
       } else {
-        const sentences = fullResponse.replace(/\[QUOTE\]|\[\/QUOTE\]/g, "").split(/[.!?]/);
+        const sentences = fullResponse
+          .replace(/\[QUOTE\]|\[\/QUOTE\]/g, "")
+          .split(/[.!?]/);
         finalQuote = sentences[0].trim() || "Ваше передбачення готове";
         finalText = fullResponse.replace(/\[QUOTE\]|\[\/QUOTE\]/g, "").trim();
       }
@@ -221,14 +270,15 @@ export default function TarotPage() {
   return (
     <div className="animate-in fade-in duration-700 md:p-0 overflow-x-hidden">
       <section className="mb-12 mt-4 md:mt-8">
-        <div className="flex justify-center gap-2 md:gap-10 mb-10 min-h-[160px] md:min-h-[400px]">
+        <div className="flex justify-center items-center gap-2 md:gap-10 mb-10 min-h-[280px] md:min-h-[550px]">
           {drawnCards.map((drawn, index) => (
             <MagicalCard
               key={index}
               card={drawn.card}
               isReversed={drawn.isReversed}
               isRevealed={areCardsRevealed}
-              delay={index * 600} 
+              delay={index * 600}
+              isLarge={cardCount === 1}
             />
           ))}
         </div>
@@ -297,9 +347,9 @@ export default function TarotPage() {
       {interpretation && !isLoading && (
         <section className="max-w-4xl mx-auto bg-magical-depth border border-white/5 p-6 md:p-12 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl animate-in slide-in-from-bottom-8 duration-1000 mb-20">
           <div className="flex items-center justify-center gap-4 mb-8">
-             <div className="h-px flex-1 bg-gradient-to-r from-transparent to-magical-gold/30"></div>
-             <span className="text-magical-gold text-2xl">✦</span>
-             <div className="h-px flex-1 bg-gradient-to-l from-transparent to-magical-gold/30"></div>
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent to-magical-gold/30"></div>
+            <span className="text-magical-gold text-2xl">✦</span>
+            <div className="h-px flex-1 bg-gradient-to-l from-transparent to-magical-gold/30"></div>
           </div>
           <div className="prose prose-invert prose-purple md:prose-lg max-w-none text-gray-300 leading-relaxed font-serif md:text-left prose-ul:list-none prose-ul:pl-0">
             <ReactMarkdown>{interpretation}</ReactMarkdown>
@@ -317,7 +367,12 @@ export default function TarotPage() {
       )}
 
       {showShareOverlay && (
-        <ShareOverlay cards={drawnCards} query={query} quote={keyQuote} onClose={() => setShowShareOverlay(false)} />
+        <ShareOverlay
+          cards={drawnCards}
+          query={query}
+          quote={keyQuote}
+          onClose={() => setShowShareOverlay(false)}
+        />
       )}
     </div>
   );
