@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { tarotDeck, type TarotCard } from "../data/tarotCards";
 import { getTarotInterpretation } from "../geminiService";
-import { toPng } from "html-to-image";
+import { toCanvas } from "html-to-image";
 import { ShareTemplate } from "../components/ShareTemplate";
 
 const CARD_BACK_URL = "/back.jpg";
@@ -189,20 +189,8 @@ export default function TarotPage() {
       );
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      const dataUrl = await toPng(node, {
-        quality: 0.95,
-        backgroundColor: "#111",
-        cacheBust: false,
-        pixelRatio: 2,
-        style: {
-          visibility: "visible",
-          display: "flex",
-          transform: "scale(1)",
-          margin: "0",
-          left: "0",
-          top: "0",
-        },
-      });
+      const canvas = await toCanvas(node, { pixelRatio: 2 });
+      const dataUrl = canvas.toDataURL("image/png");
 
       if (!dataUrl || dataUrl === "data:,") throw new Error("Empty image");
 
