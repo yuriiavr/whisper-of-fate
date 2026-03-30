@@ -6,6 +6,8 @@ import { ShareTemplate } from "../components/ShareTemplate";
 
 const CARD_BACK_URL = "/back.jpg";
 const STORY_BG_URL = "/story-bg.png";
+const APP_LOGO_URL = "/logo.png";
+const QR_CODE_URL = "/qr-code.png";
 
 const MagicalCard = ({
   card,
@@ -162,121 +164,103 @@ export default function TarotPage() {
 
   const generateManualCanvas = async (
   cards: { card: TarotCard; isReversed: boolean }[],
-  quote: string,
+  quote: string
 ): Promise<string> => {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas context failed");
 
-  // Стандартний розмір Instagram Story
   canvas.width = 1080;
   canvas.height = 1920;
 
-  // Функція для завантаження зображень (з вантаженням crossOrigin)
   const loadImg = (url: string) =>
-    new Promise<HTMLImageElement>((resolve) => {
+    new Promise<HTMLImageElement>((resolve, reject) => {
       const img = new Image();
       img.src = url;
       img.crossOrigin = "anonymous";
       img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
     });
 
-  // Завантажуємо всі ресурси одночасно для швидкості
-  const [bgImg, logoImg, qrImg] = await Promise.all([
-    loadImg("/story-bg.png"),
-    loadImg("/app-logo.png"), // Вирізаний логотип
-    loadImg("/qr-code.png"),  // QR-код на твій сайт
-  ]);
+  try {
+    // Використовуємо константи, які ми оголосили вище
+    const [bgImg, logoImg, qrImg] = await Promise.all([
+      loadImg(STORY_BG_URL),
+      loadImg(APP_LOGO_URL),
+      loadImg(QR_CODE_URL),
+    ]);
 
-  // 1. Малюємо готовий фон (підкладку)
-  ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+    // 1. Малюємо фон
+    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
-  // 2. Додаємо ЛОГОТИП зверху
-  const logoW = 600; // Ширина логотипу на канвасі
-  const logoH = logoW * (logoImg.height / logoImg.width); // Зберігаємо пропорції
-  ctx.drawImage(logoImg, (canvas.width - logoW) / 2, 80, logoW, logoH);
+    // 2. Малюємо ЛОГОТИП зверху
+    const logoW = 700; 
+    const logoH = logoImg.height * (logoW / logoImg.width);
+    ctx.drawImage(logoImg, (canvas.width - logoW) / 2, 100, logoW, logoH);
 
-  // Додаємо напис "ПЕРЕДБАЧЕННЯ НА..." під логотипом
-  ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-  ctx.font = "36px sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("ПЕРЕДБАЧЕННЯ НА СЬОГОДНІ", canvas.width / 2, 80 + logoH + 60);
+    // 3. Малюємо КАРТИ (трохи нижче логотипу)
+    const cardWidth = 360;
+    const cardHeight = 640;
+    const cardY = 520; 
+    const totalWidth = cards.length * cardWidth + (cards.length - 1) * 40;
+    let currentX = (canvas.width - totalWidth) / 2;
 
-  // 3. Параметри КАРТИ (підбираємо під порожнє вікно)
-  const cardWidth = 360;
-  const cardHeight = 640;
-  const cardY = 480; // Координата вікна
-  const totalWidth = cards.length * cardWidth + (cards.length - 1) * 40;
-  let currentX = (canvas.width - totalWidth) / 2;
+    for (const item of cards) {
+      const cardImg = new Image();
+      cardImg.src = await getBase64FromUrl(item.card.image);
+      await new Promise((resolve) => (cardImg.onload = resolve));
 
-  // Додаємо тінь для карт, щоб вони виглядали об'ємніше
-  ctx.shadowColor = "rgba(168, 85, 247, 0.5)"; // magical-accent glow
-  ctx.shadowBlur = 40;
-  ctx.shadowOffsetY = 10;
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(currentX, cardY, cardWidth, cardHeight, 30);
+      ctx.clip();
 
-  for (const item of cards) {
-    const cardImg = new Image();
-    cardImg.src = await getBase64FromUrl(item.card.image);
-    await new Promise((resolve) => (cardImg.onload = resolve));
-
-    ctx.save();
-    
-    // Маска для закруглених кутів карт
-    ctx.beginPath();
-    ctx.roundRect(currentX, cardY, cardWidth, cardHeight, 24);
-    ctx.clip(); // Кліпаємо картинку по масці
-
-    if (item.isReversed) {
-      ctx.translate(currentX + cardWidth / 2, cardY + cardHeight / 2);
-      ctx.rotate(Math.PI);
-      ctx.drawImage(cardImg, -cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight);
-    } else {
-      ctx.drawImage(cardImg, currentX, cardY, cardWidth, cardHeight);
-    }
-    
-    ctx.restore();
-    currentX += cardWidth + 40;
-  }
-
-  // 4. ТЕКСТ ЦИТАТИ (вище,italic Georgia, center, max width)
-  ctx.save();
-  ctx.shadowBlur = 0; // Прибираємо тінь від карт для тексту
-  ctx.fillStyle = "#FFFFFF";
-  ctx.textAlign = "center";
-  ctx.font = "italic bold 52px 'Georgia', serif"; // Шрифт serif, bold,italic
-
-  // Функція обгортки тексту ( wrapText )
-  const wrapText = (c:CanvasRenderingContext2D, t:string, x:number, y:number, mw:number, lh:number) => {
-    const words = t.split(" ");
-    let line = "";
-    for (let n = 0; n < words.length; n++) {
-      const testLine = line + words[n] + " ";
-      if (c.measureText(testLine).width > mw && n > 0) {
-        c.fillText(line, x, y);
-        line = words[n] + " ";
-        y += lh;
+      if (item.isReversed) {
+        ctx.translate(currentX + cardWidth / 2, cardY + cardHeight / 2);
+        ctx.rotate(Math.PI);
+        ctx.drawImage(cardImg, -cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight);
       } else {
-        line = testLine;
+        ctx.drawImage(cardImg, currentX, cardY, cardWidth, cardHeight);
       }
+      ctx.restore();
+      currentX += cardWidth + 40;
     }
-    c.fillText(line, x, y);
-  };
 
-  // Малюємо цитату: y=1350 (це вище, ніж було),maxWidth=850 (щоб не вилазило)
-  wrapText(ctx, `"${quote}"`, canvas.width / 2, 1350, 850, 75);
-  ctx.restore();
+    // 4. ТЕКСТ ЦИТАТИ (піднято вище)
+    ctx.fillStyle = "#FFFFFF";
+    ctx.textAlign = "center";
+    ctx.font = "italic bold 54px 'Georgia', serif";
 
-  // 5. QR-код (знизу, center, small)
-  const qrW = 200; // Розмір QR-коду
-  const qrH = 200;
-  ctx.drawImage(qrImg, (canvas.width - qrW) / 2, 1600, qrW, qrH);
+    const wrapText = (c: CanvasRenderingContext2D, t: string, x: number, y: number, mw: number, lh: number) => {
+      const words = t.split(" ");
+      let line = "";
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + " ";
+        if (c.measureText(testLine).width > mw && n > 0) {
+          c.fillText(line, x, y);
+          line = words[n] + " ";
+          y += lh;
+        } else { line = testLine; }
+      }
+      c.fillText(line, x, y);
+    };
 
-  // Підпис під QR-кодом
-  ctx.fillStyle = "#C084FC"; // magical-accent
-  ctx.font = "bold 34px sans-serif";
-  ctx.fillText("whisper-of-fate.vercel.app", canvas.width / 2, 1850);
+    // y = 1320 — це якраз на рівні плашки зі скріншота
+    wrapText(ctx, `"${quote}"`, canvas.width / 2, 1320, 850, 80);
 
-  return canvas.toDataURL("image/png");
+    // 5. QR-КОД ТА ЛІНК
+    const qrSize = 180;
+    ctx.drawImage(qrImg, (canvas.width - qrSize) / 2, 1620, qrSize, qrSize);
+
+    ctx.fillStyle = "#FFD700"; // Золотистий колір для посилання
+    ctx.font = "bold 32px sans-serif";
+    ctx.fillText("whisper-of-fate.vercel.app", canvas.width / 2, 1850);
+
+    return canvas.toDataURL("image/png");
+  } catch (err) {
+    console.error("Canvas render error:", err);
+    throw err;
+  }
 };
 
   const handleShareToInstagram = async () => {
