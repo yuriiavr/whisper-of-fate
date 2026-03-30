@@ -119,76 +119,91 @@ export default function TarotPage() {
   };
 
   const handleShareToInstagram = async () => {
-    const node = document.getElementById("share-story-template");
-    console.log("🔍 Перевірка перед генерацією:");
-    console.log("- Шаблон:", !!node);
-    console.log("- Цитата:", keyQuote);
+  const node = document.getElementById("share-story-template");
+  
+  console.log("🔍 Перевірка перед генерацією:");
+  console.log("- Шаблон знайдено:", !!node);
+  console.log("- Карт у масиві:", drawnCards.length);
+  console.log("- Цитата (keyQuote):", keyQuote);
 
-    if (!node || drawnCards.length === 0 || !keyQuote) {
-      console.error("❌ Умови все ще не виконані");
-      return;
-    }
+  if (!node || drawnCards.length === 0 || !keyQuote) {
+    console.error("❌ Умови не виконані! Функція зупинена.");
+    return;
+  }
 
-    setIsSharing(true);
-    try {
-      console.log("📸 Починаємо генерацію PNG через toPng...");
-      const sleep = (ms: number) =>
-        new Promise((resolve) => setTimeout(resolve, ms));
-
-      console.log("⏳ Чекаємо на рендер картинок...");
-      await sleep(500);
-
-      console.log("📸 Починаємо генерацію PNG...");
-      const dataUrl = await toPng(node, {
-        quality: 0.95,
-        backgroundColor: "#111",
-        cacheBust: true, // Додаємо, щоб уникнути проблем із кешем картинок
+  setIsSharing(true);
+  
+  try {
+    const images = Array.from(node.querySelectorAll('img'));
+    const imagePromises = images.map(img => {
+      if (img.complete) return Promise.resolve();
+      return new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
       });
-      console.log("✅ PNG згенеровано, довжина рядка:", dataUrl.length);
+    });
 
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      const file = new File([blob], "tarot-prediction.png", {
-        type: "image/png",
-      });
-      console.log(
-        "📂 Файл підготовлено, розмір:",
-        (blob.size / 1024).toFixed(2),
-        "KB",
-      );
+    console.log("⏳ Чекаємо на завантаження ассетів...");
+    await Promise.all(imagePromises);
 
-      if (
-        navigator.share &&
-        navigator.canShare &&
-        navigator.canShare({ files: [file] })
-      ) {
-        console.log("📱 Спроба відкрити системне меню Share...");
-        await navigator.share({
-          files: [file],
-          title: "Мій розклад Таро",
-          text: `Порада Оракула: "${keyQuote}"`,
-        });
-        console.log("🏁 Share API викликано успішно");
-      } else {
-        console.log(
-          "💻 Share API не підтримується, запускаємо скачування файлу...",
-        );
-        const link = document.createElement("a");
-        link.download = `whisper-of-fate-${new Date().getTime()}.png`;
-        link.href = dataUrl;
-        document.body.appendChild(link); // Додаємо в DOM для надійності
-        link.click();
-        document.body.removeChild(link);
-        console.log("🏁 Файл має почати завантаження");
+    await new Promise((resolve) => setTimeout(resolve, 300)); 
+
+    console.log("📸 Починаємо генерацію PNG через toPng...");
+    
+    const dataUrl = await toPng(node, {
+      quality: 1,
+      backgroundColor: "#111",
+      cacheBust: true,
+      pixelRatio: 2,
+      style: {
+        visibility: 'visible',
+        display: 'flex'
       }
-    } catch (error) {
-      console.error("🚨 Помилка всередині блоку try-catch:", error);
-      alert("Вибачте, не вдалося створити картинку.");
-    } finally {
-      setIsSharing(false);
-      console.log("🔚 Процес завершено.");
+    });
+
+    if (!dataUrl || dataUrl === "data:,") {
+      throw new Error("Згенеровано пусте зображення");
     }
-  };
+
+    console.log("✅ PNG згенеровано, довжина рядка:", dataUrl.length);
+
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const file = new File([blob], "tarot-prediction.png", { type: "image/png" });
+
+    console.log("📂 Файл підготовлено, розмір:", (blob.size / 1024).toFixed(2), "KB");
+
+    if (
+      navigator.share &&
+      navigator.canShare &&
+      navigator.canShare({ files: [file] })
+    ) {
+      console.log("📱 Спроба відкрити системне меню Share...");
+      await navigator.share({
+        files: [file],
+        title: "Мій розклад Таро",
+        text: `Порада Оракула: "${keyQuote}"`,
+      });
+      console.log("🏁 Share API викликано успішно");
+    } else {
+      console.log("💻 Share API не підтримується, запускаємо скачування...");
+      const link = document.createElement("a");
+      link.download = `whisper-of-fate-${new Date().getTime()}.png`;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      console.log("🏁 Файл завантажено");
+    }
+
+  } catch (error) {
+    console.error("🚨 Помилка всередині блоку try-catch:", error);
+    alert("Не вдалося створити картинку. Спробуйте ще раз або перевірте підключення.");
+  } finally {
+    setIsSharing(false);
+    console.log("🔚 Процес завершено.");
+  }
+};
 
   return (
     <div className="animate-in fade-in duration-700">
