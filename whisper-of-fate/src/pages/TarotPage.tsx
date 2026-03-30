@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { tarotDeck, type TarotCard } from "../data/tarotCards";
 import { getTarotInterpretation } from "../geminiService";
-import { toCanvas } from "html-to-image";
 import { ShareTemplate } from "../components/ShareTemplate";
 
 const CARD_BACK_URL = "/back.jpg";
