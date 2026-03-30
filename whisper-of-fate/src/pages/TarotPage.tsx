@@ -187,99 +187,81 @@ export default function TarotPage() {
   };
 
   // --- ЛОГІКА ШЕРІНГУ В INSTAGRAM ---
-  const handleShareToInstagram = async () => {
+ const handleShareToInstagram = async () => {
   const node = document.getElementById("share-story-template");
-
   if (!node || drawnCards.length === 0 || !keyQuote) return;
 
   setIsSharing(true);
 
   try {
-    console.log("📸 Починаємо підготовку скріншота...");
-
-    // КРОК 1: Конвертуємо всі картинки в Base64 всередині шаблону
-    // Це прибирає проблеми з "білими квадратами" на мобільних
+    // 1. Отримуємо всі картинки в шаблоні
     const images = Array.from(node.querySelectorAll("img"));
+
+    // 2. ФОРСОВАНА ПЕРЕЗАГРУЗКА (Nuclear Fix для iOS)
+    // Ми створюємо нові об'єкти Image, щоб "очистити" їх від блокувань браузера
     await Promise.all(
       images.map(async (img) => {
-        try {
-          // Якщо картинка вже в base64 або вже завантажена як blob - пропускаємо
-          if (img.src.startsWith('data:')) return;
+        const originalSrc = img.src;
+        
+        // Якщо це вже base64 — не чіпаємо
+        if (originalSrc.startsWith('data:')) return;
+
+        return new Promise((resolve) => {
+          const newImg = new Image();
+          newImg.crossOrigin = "anonymous"; // КЛЮЧОВИЙ МОМЕНТ
           
-          const base64 = await getBase64Image(img.src);
-          img.src = base64;
+          newImg.onload = () => {
+            img.src = originalSrc; // Повертаємо назад, тепер браузер вважає її "безпечною"
+            resolve(true);
+          };
           
-          // Чекаємо поки картинка оновиться з новим src
-          await new Promise((resolve) => {
-            img.onload = resolve;
-            img.onerror = resolve;
-          });
-        } catch (err) {
-          console.warn("Не вдалося конвертувати картинку в Base64:", img.src, err);
-        }
+          newImg.onerror = () => {
+            console.error("Помилка завантаження для скріна:", originalSrc);
+            resolve(false);
+          };
+
+          // Додаємо cache-buster до URL, щоб обійти старий кеш, який може бути "брудним"
+          newImg.src = originalSrc.includes('?') 
+            ? `${originalSrc}&t=${Date.now()}` 
+            : `${originalSrc}?t=${Date.now()}`;
+        });
       })
     );
 
-    // КРОК 2: Даємо браузеру час на перемальовку DOM після заміни src
-    await new Promise((resolve) =>
-      requestAnimationFrame(() => requestAnimationFrame(resolve))
-    );
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    // 3. Маленька пауза для Safari
+    await new Promise(r => setTimeout(r, 500));
 
-    // КРОК 3: Генерація PNG
+    // 4. Рендеримо через toPng
     const dataUrl = await toPng(node, {
-      quality: 1,
-      backgroundColor: "#111",
-      cacheBust: false, // Тепер не потрібно, бо ми вручну подали base64
+      cacheBust: true, // Важливо для мобілок
       pixelRatio: 2,
       style: {
         visibility: "visible",
-        display: "flex",
-        transform: "scale(1)",
-        margin: "0",
-        left: "0",
-        top: "0"
-      },
-      // Вимикаємо обробку шрифтів бібліотекою, якщо вони глючать (опціонально)
-      // skipFonts: true, 
+        display: "flex"
+      }
     });
 
-    if (!dataUrl || dataUrl === "data:,") {
-      throw new Error("Згенеровано пусте зображення");
+    if (!dataUrl || dataUrl.length < 1000) {
+        throw new Error("Картинка занадто мала або порожня");
     }
 
-    console.log("✅ PNG успішно згенеровано");
-
-    // КРОК 4: Підготовка файлу для Share API
+    // Далі твій стандартний код Share API...
     const res = await fetch(dataUrl);
     const blob = await res.blob();
-    const file = new File([blob], "tarot-prediction.png", {
-      type: "image/png",
-    });
+    const file = new File([blob], "oracle.png", { type: "image/png" });
 
-    // КРОК 5: Спроба використати системне меню Share (мобільні)
-    if (
-      navigator.share &&
-      navigator.canShare &&
-      navigator.canShare({ files: [file] })
-    ) {
-      await navigator.share({
-        files: [file],
-        title: "Whisper of Fate",
-        text: `Порада Оракула: "${keyQuote}"`,
-      });
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: "Whisper of Fate" });
     } else {
-      // КРОК 6: Фолбек для десктопів (скачування)
       const link = document.createElement("a");
-      link.download = `tarot-whisper-${Date.now()}.png`;
       link.href = dataUrl;
-      document.body.appendChild(link);
+      link.download = "prediction.png";
       link.click();
-      document.body.removeChild(link);
     }
+
   } catch (error) {
-    console.error("🚨 Помилка шерінгу:", error);
-    alert("Мобільний браузер заблокував рендер. Спробуйте ще раз або зробіть скріншот екрана.");
+    console.error("🚨 Помилка:", error);
+    alert("Спробуйте ще раз через секунду, сервер обробляє картинку.");
   } finally {
     setIsSharing(false);
   }
