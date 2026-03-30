@@ -89,18 +89,16 @@ export default function TarotPage() {
     setIsLoading(true);
     try {
       const fullResponse = await getTarotInterpretation(query, drawnCards);
-      console.log("Full AI Response:", fullResponse); // Для перевірки в консолі
+      console.log("Full AI Response:", fullResponse);
 
       const quoteMatch = fullResponse.match(/\[QUOTE\](.*?)\[\/QUOTE\]/s);
       let finalQuote = "";
       let finalText = fullResponse;
 
       if (quoteMatch && quoteMatch[1].trim()) {
-        // Варіант А: ШІ дотримався інструкцій
         finalQuote = quoteMatch[1].trim();
         finalText = fullResponse.replace(/\[QUOTE\].*?\[\/QUOTE\]/s, "").trim();
       } else {
-        // Варіант Б (Запасний): Беремо перше речення до крапки
         const sentences = fullResponse
           .replace(/\[QUOTE\]|\[\/QUOTE\]/g, "")
           .split(/[.!?]/);
@@ -160,6 +158,8 @@ export default function TarotPage() {
         display: 'flex'
       }
     });
+
+    console.log("🔗 Клікни сюди, щоб побачити результат:", dataUrl);
 
     if (!dataUrl || dataUrl === "data:,") {
       throw new Error("Згенеровано пусте зображення");
