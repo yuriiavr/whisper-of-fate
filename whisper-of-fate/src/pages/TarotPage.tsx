@@ -175,84 +175,119 @@ export default function TarotPage() {
     }
   };
 
-  // --- ЛОГІКА ШЕРІНГУ В INSTAGRAM ---
- const handleShareToInstagram = async () => {
+  const getBase64FromUrl = async (url: string): Promise<string> => {
+  const data = await fetch(url);
+  const blob = await data.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(blob);
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+  });
+};
+
+const handleShareToInstagram = async () => {
   const node = document.getElementById("share-story-template");
-  if (!node || drawnCards.length === 0 || !keyQuote) return;
+
+  if (!node || drawnCards.length === 0 || !keyQuote) {
+    console.error("🔍 Немає карт або цитати для шерінгу");
+    return;
+  }
 
   setIsSharing(true);
+  console.log("🚀 Початок підготовки скріншота для сторіз...");
 
   try {
-    // 1. Отримуємо всі картинки в шаблоні
+    // --- ЗМІНА 1: ПРИМУСОВИЙ BASE64 ДЛЯ iOS (Nuclear Fix) ---
+    // Це вирішує проблему порожніх карт.
     const images = Array.from(node.querySelectorAll("img"));
-
-    // 2. ФОРСОВАНА ПЕРЕЗАГРУЗКА (Nuclear Fix для iOS)
-    // Ми створюємо нові об'єкти Image, щоб "очистити" їх від блокувань браузера
-    await Promise.all(
-      images.map(async (img) => {
-        const originalSrc = img.src;
-        
-        // Якщо це вже base64 — не чіпаємо
-        if (originalSrc.startsWith('data:')) return;
-
-        return new Promise((resolve) => {
-          const newImg = new Image();
-          newImg.crossOrigin = "anonymous"; // КЛЮЧОВИЙ МОМЕНТ
+    
+    // Щоб не конвертувати тисячу разів, перевіряємо, чи вже не base64
+    await Promise.all(images.map(async (img) => {
+      if (!img.src.startsWith('data:')) {
+        try {
+          const b64 = await getBase64FromUrl(img.src);
+          img.src = b64;
           
-          newImg.onload = () => {
-            img.src = originalSrc; // Повертаємо назад, тепер браузер вважає її "безпечною"
-            resolve(true);
-          };
-          
-          newImg.onerror = () => {
-            console.error("Помилка завантаження для скріна:", originalSrc);
-            resolve(false);
-          };
+          // Чекаємо, поки DOM оновиться
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        } catch (e) {
+          console.warn("Не вдалося конвертувати картинку в Base64:", img.src, e);
+        }
+      }
+    }));
 
-          // Додаємо cache-buster до URL, щоб обійти старий кеш, який може бути "брудним"
-          newImg.src = originalSrc.includes('?') 
-            ? `${originalSrc}&t=${Date.now()}` 
-            : `${originalSrc}?t=${Date.now()}`;
-        });
-      })
+    // Крок 2: Даємо React та Safari час "переварити" зміни DOM
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve))
     );
+    await new Promise((resolve) => setTimeout(resolve, 500)); // Збільшена пауза
 
-    // 3. Маленька пауза для Safari
-    await new Promise(r => setTimeout(r, 500));
+    console.log("📸 Починаємо рендеринг PNG...");
 
-    // 4. Рендеримо через toPng
+    // Крок 3: Генерація PNG
     const dataUrl = await toPng(node, {
-      cacheBust: true, // Важливо для мобілок
-      pixelRatio: 2,
+      quality: 0.95, // Максимальна якість
+      backgroundColor: "#111", // Задаємо явний фон
+      cacheBust: false, // Тепер не потрібно, бо ми вручну подали base64
+      pixelRatio: 2, // Висока чіткість (Retina)
+
+      // --- ЗМІНА 2: ФІКС "ФОН ПОЇХАВ" ---
+      // Скидаємо всі стилі, які Safari може інтерпретувати невірно
       style: {
         visibility: "visible",
-        display: "flex"
-      }
+        display: "flex",
+        transform: "scale(1)",
+        margin: "0",
+        left: "0",
+        top: "0"
+      },
     });
 
-    if (!dataUrl || dataUrl.length < 1000) {
-        throw new Error("Картинка занадто мала або порожня");
+    if (!dataUrl || dataUrl === "data:,") {
+      throw new Error("Згенеровано пусте зображення");
     }
 
-    // Далі твій стандартний код Share API...
+    console.log("🔗 PNG успішно згенеровано, довжина рядка:", dataUrl.length);
+
+    // Крок 4: Підготовка файлу для Share API
     const res = await fetch(dataUrl);
     const blob = await res.blob();
-    const file = new File([blob], "oracle.png", { type: "image/png" });
+    const file = new File([blob], "tarot-whisper.png", {
+      type: "image/png",
+    });
 
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: "Whisper of Fate" });
+    // Крок 5: Спроба використати системне меню Share (для iOS/Android)
+    if (
+      navigator.share &&
+      navigator.canShare &&
+      navigator.canShare({ files: [file] })
+    ) {
+      console.log("📱 Відкриваємо системне меню Share...");
+      await navigator.share({
+        files: [file],
+        title: "Whisper of Fate - Порада Оракула",
+        text: `Оракул каже: "${keyQuote}"`,
+      });
     } else {
+      // Крок 6: Фолбек для десктопів (скачування)
+      console.log("💻 Share API не підтримується, скачуємо файл...");
       const link = document.createElement("a");
+      link.download = `tarot-whisper-${Date.now()}.png`;
       link.href = dataUrl;
-      link.download = "prediction.png";
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     }
-
   } catch (error) {
-    console.error("🚨 Помилка:", error);
-    alert("Спробуйте ще раз через секунду, сервер обробляє картинку.");
+    console.error("🚨 Помилка шерінгу:", error);
+    alert("Мобільний браузер заблокував рендер. Спробуйте ще раз.");
   } finally {
     setIsSharing(false);
+    console.log("🔚 Процес завершено.");
   }
 };
 
