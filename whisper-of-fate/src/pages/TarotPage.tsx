@@ -202,10 +202,12 @@ export default function TarotPage() {
       const queryY = logoY + logoH + 60;
       ctx.fillText(query.toUpperCase(), canvas.width / 2, queryY);
 
-      const cardWidth = 360;
-      const cardHeight = 640;
-      const cardY = queryY + 80;
-      const totalWidth = cards.length * cardWidth + (cards.length - 1) * 40;
+      const cardWidth = 210;
+      const cardHeight = 373;
+      const cardSpacing = 20;
+      const cardY = queryY + 60;
+      const totalWidth = cards.length * cardWidth + (cards.length - 1) * cardSpacing;
+      
       let currentX = (canvas.width - totalWidth) / 2;
 
       for (const item of cards) {
@@ -232,7 +234,7 @@ export default function TarotPage() {
           ctx.drawImage(cardImg, currentX, cardY, cardWidth, cardHeight);
         }
         ctx.restore();
-        currentX += cardWidth + 40;
+        currentX += cardWidth + cardSpacing;
       }
 
       ctx.fillStyle = "#FFFFFF";
@@ -262,7 +264,7 @@ export default function TarotPage() {
         c.fillText(line, x, y);
       };
 
-      wrapText(ctx, quote, canvas.width / 2, 1300, 850, 70);
+      wrapText(ctx, quote, canvas.width / 2, 1250, 850, 70);
 
       const qrSize = 180;
       ctx.drawImage(qrImg, (canvas.width - qrSize) / 2, 1620, qrSize, qrSize);
