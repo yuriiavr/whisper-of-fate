@@ -262,7 +262,7 @@ export default function TarotPage() {
         c.fillText(line, x, y);
       };
 
-      wrapText(ctx, quote, canvas.width / 2, 1320, 850, 70);
+      wrapText(ctx, quote, canvas.width / 2, 1300, 850, 70);
 
       const qrSize = 180;
       ctx.drawImage(qrImg, (canvas.width - qrSize) / 2, 1620, qrSize, qrSize);
