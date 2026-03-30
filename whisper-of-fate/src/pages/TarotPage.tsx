@@ -149,219 +149,115 @@ export default function TarotPage() {
     }
   };
 
-  const getBase64FromUrl = async (url: string): Promise<string> => {
+ const getBase64FromUrl = async (url: string): Promise<string> => {
     const data = await fetch(url);
     const blob = await data.blob();
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
       reader.readAsDataURL(blob);
       reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
     });
   };
 
-  const generateManualCanvas = async (
-    cards: { card: any; isReversed: boolean }[],
-    quote: string,
-  ): Promise<string> => {
+  // --- ЯКІСНИЙ РЕНДЕР ДЛЯ INSTAGRAM ---
+  const generateManualCanvas = async (cards: any[], quote: string): Promise<string> => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Canvas context failed");
+    if (!ctx) throw new Error("Canvas fail");
 
-    // 1. Налаштування розміру (Instagram Story)
     canvas.width = 1080;
     canvas.height = 1920;
 
-    // 2. Фон (Магічна глибина)
-    ctx.fillStyle = "#111111"; // Замініть на свій bg-magical-depth
+    // Фон (Глибокий магічний колір)
+    ctx.fillStyle = "#0a0a0c"; 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // --- Малюємо карти ---
-    const cardWidth = 320; // Трохи більше
-    const cardHeight = 540;
-    const gap = 50;
-    const borderRadius = 24; // Округлені кути
-
-    const totalWidth = cards.length * cardWidth + (cards.length - 1) * gap;
-    let startX = (canvas.width - totalWidth) / 2;
-    const startY = 450;
+    const cardWidth = 400;
+    const cardHeight = 680;
+    const borderRadius = 30;
+    
+    // Центрування карт
+    const totalWidth = cards.length * cardWidth + (cards.length - 1) * 40;
+    let currentX = (canvas.width - totalWidth) / 2;
+    const startY = 400;
 
     for (const item of cards) {
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.src = await getBase64FromUrl(item.card.image);
-
-      await img.decode(); // Гарантуємо пікселі
+      await new Promise(r => img.onload = r);
 
       ctx.save();
+      
+      // Малюємо тінь карти
+      ctx.shadowColor = "rgba(139, 92, 246, 0.5)";
+      ctx.shadowBlur = 50;
+      
+      // Закруглення (Clip)
+      ctx.beginPath();
+      ctx.roundRect(currentX, startY, cardWidth, cardHeight, borderRadius);
+      ctx.fill(); // Малюємо підкладку для тіні
+      ctx.clip();
 
-      // Позиціонування
-      const centerX = startX + cardWidth / 2;
-      const centerY = startY + cardHeight / 2;
-      ctx.translate(centerX, centerY);
-
+      // Малюємо саму карту (з поворотом якщо reversed)
       if (item.isReversed) {
-        ctx.rotate(Math.PI); // Поворот на 180 градусів
+        ctx.translate(currentX + cardWidth / 2, startY + cardHeight / 2);
+        ctx.rotate(Math.PI);
+        ctx.drawImage(img, -cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight);
+      } else {
+        ctx.drawImage(img, currentX, startY, cardWidth, cardHeight);
       }
 
-      // --- Малюємо стилі карти (Рамка та Тінь) ---
-
-      // 1. Тінь (Shadow-2xl)
-      ctx.shadowColor = "rgba(138, 43, 226, 0.4)"; // magical-accent/30
-      ctx.shadowBlur = 40;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 10;
-
-      // 2. Округлені кути для карти (Кліпінг)
-      ctx.beginPath();
-      ctx.moveTo(-cardWidth / 2 + borderRadius, -cardHeight / 2);
-      ctx.lineTo(cardWidth / 2 - borderRadius, -cardHeight / 2);
-      ctx.quadraticCurveTo(
-        cardWidth / 2,
-        -cardHeight / 2,
-        cardWidth / 2,
-        -cardHeight / 2 + borderRadius,
-      );
-      ctx.lineTo(cardWidth / 2, cardHeight / 2 - borderRadius);
-      ctx.quadraticCurveTo(
-        cardWidth / 2,
-        cardHeight / 2,
-        cardWidth / 2 - borderRadius,
-        cardHeight / 2,
-      );
-      ctx.lineTo(-cardWidth / 2 + borderRadius, cardHeight / 2);
-      ctx.quadraticCurveTo(
-        -cardWidth / 2,
-        cardHeight / 2,
-        -cardWidth / 2,
-        cardHeight / 2 - borderRadius,
-      );
-      ctx.lineTo(-cardWidth / 2, -cardHeight / 2 + borderRadius);
-      ctx.quadraticCurveTo(
-        -cardWidth / 2,
-        -cardHeight / 2,
-        -cardWidth / 2 + borderRadius,
-        -cardHeight / 2,
-      );
-      ctx.closePath();
-
-      ctx.fillStyle = "#1a1a1a"; // Фон карти (magical-depth)
-      ctx.fill();
-      ctx.clip(); // Кліпаємо картинку по кутах
-
-      // Прибираємо тінь для самої картинки, щоб вона не подвоїлася
-      ctx.shadowBlur = 0;
-      ctx.shadowColor = "transparent";
-
-      // 3. Малюємо саму карту
-      ctx.drawImage(
-        img,
-        -cardWidth / 2,
-        -cardHeight / 2,
-        cardWidth,
-        cardHeight,
-      );
-
-      // 4. Градієнт поверх карти (як у вашому CSS)
-      const gradient = ctx.createLinearGradient(
-        0,
-        cardHeight / 2,
-        0,
-        -cardHeight / 2,
-      );
-      gradient.addColorStop(0, "rgba(0,0,0,0.9)"); // Чорний низ
-      gradient.addColorStop(0.5, "rgba(0,0,0,0)"); // Прозорий центр
-      ctx.fillStyle = gradient;
-      ctx.fillRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight);
-
-      ctx.restore(); // Повертаємо контекст
-
-      // 5. Рамка (після кліпінгу та restore)
-      ctx.save();
-      ctx.translate(centerX, centerY);
-      if (item.isReversed) ctx.rotate(Math.PI);
-
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = "#C084FC"; // magical-accent
-
-      // Створення шляху для рамки (те саме, що й для кліпінгу)
-      ctx.beginPath();
-      ctx.moveTo(-cardWidth / 2 + borderRadius, -cardHeight / 2);
-      ctx.lineTo(cardWidth / 2 - borderRadius, -cardHeight / 2);
-      ctx.quadraticCurveTo(
-        cardWidth / 2,
-        -cardHeight / 2,
-        cardWidth / 2,
-        -cardHeight / 2 + borderRadius,
-      );
-      ctx.lineTo(cardWidth / 2, cardHeight / 2 - borderRadius);
-      ctx.quadraticCurveTo(
-        cardWidth / 2,
-        cardHeight / 2,
-        cardWidth / 2 - borderRadius,
-        cardHeight / 2,
-      );
-      ctx.lineTo(-cardWidth / 2 + borderRadius, cardHeight / 2);
-      ctx.quadraticCurveTo(
-        -cardWidth / 2,
-        cardHeight / 2,
-        -cardWidth / 2,
-        cardHeight / 2 - borderRadius,
-      );
-      ctx.lineTo(-cardWidth / 2, -cardHeight / 2 + borderRadius);
-      ctx.quadraticCurveTo(
-        -cardWidth / 2,
-        -cardHeight / 2,
-        -cardWidth / 2 + borderRadius,
-        -cardHeight / 2,
-      );
-      ctx.closePath();
-      ctx.stroke();
+      // Градієнт затемнення знизу
+      const grad = ctx.createLinearGradient(0, startY + cardHeight, 0, startY);
+      grad.addColorStop(0, "rgba(0,0,0,0.8)");
+      grad.addColorStop(0.4, "transparent");
+      ctx.fillStyle = grad;
+      ctx.fillRect(currentX, startY, cardWidth, cardHeight);
 
       ctx.restore();
+      
+      // Рамка карти
+      ctx.strokeStyle = "#C084FC";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.roundRect(currentX, startY, cardWidth, cardHeight, borderRadius);
+      ctx.stroke();
 
-      startX += cardWidth + gap;
+      currentX += cardWidth + 40;
     }
 
-    // --- Малюємо текст (Цитату) ---
-    ctx.fillStyle = "#FFFFFF"; // Білий текст
-    ctx.font = "bold 56px sans-serif"; // Трохи більший
+    // Текст цитати
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "bold 52px serif";
     ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
 
-    // Виправляємо помилку "implicitly has an 'any' type"
-    const wrapText = (
-      ctx: CanvasRenderingContext2D,
-      text: string,
-      x: number,
-      y: number,
-      maxWidth: number,
-      lineHeight: number,
-    ) => {
-      const words = text.split(" ");
+    const wrapText = (c: CanvasRenderingContext2D, t: string, x: number, y: number, mw: number, lh: number) => {
+      const words = t.split(" ");
       let line = "";
+      let currentY = y;
       for (let n = 0; n < words.length; n++) {
         const testLine = line + words[n] + " ";
-        const metrics = ctx.measureText(testLine);
-        if (metrics.width > maxWidth && n > 0) {
-          ctx.fillText(line, x, y);
+        if (c.measureText(testLine).width > mw && n > 0) {
+          c.fillText(line, x, currentY);
           line = words[n] + " ";
-          y += lineHeight;
-        } else {
-          line = testLine;
-        }
+          currentY += lh;
+        } else { line = testLine; }
       }
-      ctx.fillText(line, x, y);
+      c.fillText(line, x, currentY);
     };
 
-    wrapText(ctx, `✦ ${quote} ✦`, canvas.width / 2, 1200, 950, 70);
+    wrapText(ctx, `"${quote}"`, canvas.width / 2, 1300, 900, 75);
 
-    // (Optional) Додайте підпис бренду внизу
-    ctx.fillStyle = "rgba(255,255,255,0.4)";
-    ctx.font = "32px sans-serif";
-    ctx.fillText("Created by Whisper of Fate", canvas.width / 2, 1800);
+    // Підпис
+    ctx.fillStyle = "#C084FC";
+    ctx.font = "30px sans-serif";
+    ctx.fillText("whisper-of-fate.vercel.app", canvas.width / 2, 1750);
 
     return canvas.toDataURL("image/png");
   };
+
 
   const handleShareToInstagram = async () => {
     if (drawnCards.length === 0 || !keyQuote) return;
