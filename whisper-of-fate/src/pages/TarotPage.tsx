@@ -135,13 +135,11 @@ const ShareOverlay = ({
           <div className="flex-1 flex items-center justify-center w-full px-2">
             <div className="relative p-6 rounded-3xl bg-black/20 border border-white/5 backdrop-blur-sm w-full">
               <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-magical-gold text-2xl">
-                “
               </span>
               <p className="text-white text-lg md:text-xl font-serif italic font-bold leading-snug text-center break-words">
                 {quote}
               </p>
               <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-magical-gold text-2xl rotate-180">
-                “
               </span>
             </div>
           </div>
