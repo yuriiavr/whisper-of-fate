@@ -63,24 +63,29 @@ export default function AstroPage() {
   };
 
   const calculateAstro = async () => {
-    setIsLoading(true);
-    setResult(null);
-    try {
-      let data;
-      if (mode === "natal") {
-        if (!p1.coords) return;
-        data = await getNatalInterpretation(p1, p1.coords);
-      } else {
-        if (!p1.coords || !p2.coords) return;
-        data = await getSynastryInterpretation(p1, p2);
-      }
-      setResult(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
+  setIsLoading(true);
+  setResult(null);
+  try {
+    let data;
+    if (mode === "natal") {
+      if (!p1.coords) return;
+      data = await getNatalInterpretation(p1, p1.coords);
+    } else {
+      if (!p1.coords || !p2.coords) return;
+      data = await getSynastryInterpretation(p1, p2);
     }
-  };
+    if (data.error) {
+      alert("Помилка AI: " + (data.details || "Спробуйте ще раз"));
+    } else {
+      setResult(data);
+    }
+  } catch (err) {
+    console.error("Frontend Error:", err);
+    alert("Не вдалося отримати дані від сервера.");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="max-w-4xl mx-auto p-4 animate-in fade-in duration-700">
