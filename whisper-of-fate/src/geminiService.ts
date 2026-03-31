@@ -8,22 +8,23 @@ export async function getTarotInterpretation(userQuery: string, drawnCards: any[
   return data.text;
 }
 
-export async function getNatalInterpretation(userData: any, coords: {lat: number, lon: number}) {
-  const response = await fetch('/api/interpret', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'natal', userData, coords })
+export const getNatalInterpretation = async (userData: any, coords: any) => {
+  // Тут ти створюєш змінну. Перевір, як вона називається: response чи res
+  const response = await fetch("/api/interpret", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "natal", userData, coords }),
   });
 
-  if (!res.ok) {
-    const errorBody = await res.text(); // Отримуємо текст помилки (те саме "A server error...")
-    console.error("--- СУКА, ОСЬ ТВОЯ ПОМИЛКА: ---");
-    console.error(errorBody); // ЦЕ ВИВЕДЕ ТЕКСТ У КОНСОЛЬ БРАУЗЕРА
-    throw new Error(`Server returned ${res.status}: ${errorBody.slice(0, 100)}...`);
+  // Якщо ти назвав її response, то і перевірка має бути через response
+  if (!response.ok) {
+    const errorText = await response.text(); 
+    console.error("ОСЬ ЩО НАСПРАВДІ ВІДПОВІВ СЕРВЕР:", errorText);
+    throw new Error(`Помилка сервера: ${response.status}`);
   }
-  
-  return await response.json(); 
-}
+
+  return response.json();
+};
 
 export async function getSynastryInterpretation(user1: any, user2: any) {
   const response = await fetch('/api/interpret', {
