@@ -32,20 +32,24 @@ export const getPrecisePlanets = async (
       requestOptions,
     );
     const data = await response.json();
+    console.log("--- ASTRO API RAW DATA ---", data);
 
-    console.log("--- ASTRO API RAW DATA ---", data); // ДОДАЙ ЦЕ
+    if (!data.output || !data.output[1]) return [];
 
-    if (!data.output) return [];
+    // Перетворюємо об'єкт з назвами планет у масив
+    const planetsData = data.output[1];
+    const planetsArray = Object.keys(planetsData).map((key) => {
+      const p = planetsData[key];
+      return {
+        nameUk: key, // Назва планети (Sun, Moon...)
+        longitude: p.fullDegree, // Зверни увагу: в API назва fullDegree (з великою D)
+        degree: `${Math.floor(p.normDegree || 0)}°`,
+        sign: p.current_sign,
+      };
+    });
 
-    const mappedPlanets = data.output.map((p: any) => ({
-      nameUk: p.name,
-      longitude: p.full_degree,
-      degree: `${Math.floor(p.full_degree % 30)}°`,
-      sign: p.sign,
-    }));
-
-    console.log("--- MAPPED PLANETS ---", mappedPlanets); // І ЦЕ
-    return mappedPlanets;
+    console.log("--- MAPPED PLANETS ---", planetsArray);
+    return planetsArray;
   } catch (error) {
     console.error("Astro API Error:", error);
     return [];
