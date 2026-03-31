@@ -4,7 +4,7 @@ import {
   HarmBlockThreshold,
 } from "@google/generative-ai";
 
-import { Observer, Equator, Body } from "astronomy-engine";
+import { Observer, Bodies, Equator, Body } from "astronomy-engine";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
