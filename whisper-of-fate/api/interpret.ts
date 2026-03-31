@@ -3,42 +3,49 @@ import {
   HarmCategory,
   HarmBlockThreshold,
 } from "@google/generative-ai";
-import { Bodies, Ecliptic, Observer, Date_Config } from "astronomy-engine";
+import { Body, EclipticLongitude } from "astronomy-engine";
 
 function getAstroData(dateStr: string, timeStr: string) {
-  const date = new Date(`${dateStr}T${timeStr}:00Z`);
-  const bodies = [
-    { id: Bodies.Sun, nameUk: "Сонце" },
-    { id: Bodies.Moon, nameUk: "Місяць" },
-    { id: Bodies.Mercury, nameUk: "Меркурій" },
-    { id: Bodies.Venus, nameUk: "Венера" },
-    { id: Bodies.Mars, nameUk: "Марс" },
-    { id: Bodies.Jupiter, nameUk: "Юпітер" },
-    { id: Bodies.Saturn, nameUk: "Сатурн" },
-    { id: Bodies.Uranus, nameUk: "Уран" },
-    { id: Bodies.Neptune, nameUk: "Нептун" },
-    { id: Bodies.Pluto, nameUk: "Плутон" },
-  ];
+  try {
+    const date = new Date(`${dateStr}T${timeStr}:00Z`);
+    if (isNaN(date.getTime())) return [];
 
-  const signs = [
-    "Овен", "Телець", "Близнюки", "Рак", "Лев", "Діва", 
-    "Терези", "Скорпіон", "Стрілець", "Козеріг", "Водолій", "Риби"
-  ];
+    const bodies = [
+      { id: Body.Sun, nameUk: "Сонце" },
+      { id: Body.Moon, nameUk: "Місяць" },
+      { id: Body.Mercury, nameUk: "Меркурій" },
+      { id: Body.Venus, nameUk: "Венера" },
+      { id: Body.Mars, nameUk: "Марс" },
+      { id: Body.Jupiter, nameUk: "Юпітер" },
+      { id: Body.Saturn, nameUk: "Сатурн" },
+      { id: Body.Uranus, nameUk: "Уран" },
+      { id: Body.Neptune, nameUk: "Нептун" },
+      { id: Body.Pluto, nameUk: "Плутон" },
+    ];
 
-  return bodies.map((b) => {
-    const coords = Ecliptic(b.id, date);
-    const lon = coords.elon;
-    const signIndex = Math.floor(lon / 30);
-    const degree = Math.floor(lon % 30);
-    const minutes = Math.floor((lon - Math.floor(lon)) * 60);
+    const signs = [
+      "Овен", "Телець", "Близнюки", "Рак", "Лев", "Діва", 
+      "Терези", "Скорпіон", "Стрілець", "Козеріг", "Водолій", "Риби"
+    ];
 
-    return {
-      nameUk: b.nameUk,
-      sign: signs[signIndex],
-      longitude: lon,
-      degree: `${degree}°${minutes}'`,
-    };
-  });
+    return bodies.map((b) => {
+      const lon = EclipticLongitude(b.id, date); 
+      
+      const signIndex = Math.floor(lon / 30);
+      const degree = Math.floor(lon % 30);
+      const minutes = Math.floor((lon - Math.floor(lon)) * 60);
+
+      return {
+        nameUk: b.nameUk,
+        sign: signs[signIndex],
+        longitude: lon,
+        degree: `${degree}°${minutes}'`,
+      };
+    });
+  } catch (e) {
+    console.error("Astro calculation error:", e);
+    return [];
+  }
 }
 
 export default async function handler(req, res) {
