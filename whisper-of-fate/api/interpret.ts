@@ -4,10 +4,14 @@ import {
   HarmBlockThreshold,
 } from "@google/generative-ai";
 import * as Astronomy from "astronomy-engine";
+import { getHoroscopeData } from "../src/astrologyService";
 
 // Функція розрахунку з детальними логами
 function getAstroData(dateStr: string, timeStr: string) {
-  console.log("[DEBUG] Початок розрахунку астро-даних для:", { dateStr, timeStr });
+  console.log("[DEBUG] Початок розрахунку астро-даних для:", {
+    dateStr,
+    timeStr,
+  });
   try {
     const date = new Date(`${dateStr}T${timeStr}:00Z`);
     if (isNaN(date.getTime())) {
@@ -29,8 +33,18 @@ function getAstroData(dateStr: string, timeStr: string) {
     ];
 
     const signs = [
-      "Овен", "Телець", "Близнюки", "Рак", "Лев", "Діва", 
-      "Терези", "Скорпіон", "Стрілець", "Козеріг", "Водолій", "Риби"
+      "Овен",
+      "Телець",
+      "Близнюки",
+      "Рак",
+      "Лев",
+      "Діва",
+      "Терези",
+      "Скорпіон",
+      "Стрілець",
+      "Козеріг",
+      "Водолій",
+      "Риби",
     ];
 
     const results = bodies.map((b) => {
@@ -38,7 +52,7 @@ function getAstroData(dateStr: string, timeStr: string) {
       if (bodyId === undefined) {
         console.error(`[ERROR] Не знайдено Body ID для ${b.id}`);
       }
-      
+
       const lon = Astronomy.EclipticLongitude(bodyId, date);
       const signIndex = Math.floor(lon / 30);
       const degree = Math.floor(lon % 30);
@@ -68,7 +82,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  const { type, userQuery, drawnCards, userData, coords, isTrollMode } = req.body;
+  const { type, userQuery, drawnCards, userData, coords, isTrollMode } =
+    req.body;
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
   // Твої моделі, сука, на місці
@@ -78,19 +93,36 @@ export default async function handler(req, res) {
   ];
 
   const safetySettings = [
-    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+    {
+      category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+      threshold: HarmBlockThreshold.BLOCK_NONE,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+      threshold: HarmBlockThreshold.BLOCK_NONE,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+      threshold: HarmBlockThreshold.BLOCK_NONE,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+      threshold: HarmBlockThreshold.BLOCK_NONE,
+    },
   ];
 
   try {
     let prompt = "";
 
     if (type === "tarot") {
-      const positions = drawnCards.length === 1
+      const positions =
+        drawnCards.length === 1
           ? ["Карта дня / Основна енергія"]
-          : ["Минуле (що призвело до ситуації)", "Теперішнє (стан справ зараз)", "Майбутнє (ймовірний розвиток)"];
+          : [
+              "Минуле (що призвело до ситуації)",
+              "Теперішнє (стан справ зараз)",
+              "Майбутнє (ймовірний розвиток)",
+            ];
 
       const cardsDescription = drawnCards
         .map((d: any, index: number) => {
@@ -104,8 +136,19 @@ export default async function handler(req, res) {
         : `Ти — досвідчений таролог та психолог. Твій тон мудрий, глибокий та етичний.`;
 
       prompt = `${styleInstruction}\nЗапит: "${userQuery}".\nКарти:\n${cardsDescription}\nВідповідай українською в Markdown. Почни з цитати [QUOTE] до 10 слів [/QUOTE].`;
-
     } else if (type === "natal") {
+      if (
+        !coords ||
+        typeof coords.lat !== "number" ||
+        typeof coords.lon !== "number"
+      ) {
+        return res.status(400).json({ error: "Missing coordinates (lat/lon)" });
+      }
+      const data = getHoroscopeData(
+        new Date(`${userData.date}T${userData.time}:00Z`),
+        coords.lat,
+        coords.lon,
+      );
       console.log("[DEBUG] Розраховуємо натал для:", userData?.name);
       const planets = getAstroData(userData.date, userData.time);
 
@@ -128,10 +171,13 @@ export default async function handler(req, res) {
     for (const modelName of modelsToTry) {
       try {
         console.log(`[DEBUG] Запуск моделі: ${modelName}`);
-        const model = genAI.getGenerativeModel({ model: modelName, safetySettings });
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          safetySettings,
+        });
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
-        
+
         console.log(`[DEBUG] Відповідь від ${modelName} отримана.`);
 
         if (type === "tarot") {
@@ -140,8 +186,9 @@ export default async function handler(req, res) {
           // Витягуємо JSON максимально надійно
           const firstBrace = responseText.indexOf("{");
           const lastBrace = responseText.lastIndexOf("}");
-          if (firstBrace === -1 || lastBrace === -1) throw new Error("JSON не знайдено");
-          
+          if (firstBrace === -1 || lastBrace === -1)
+            throw new Error("JSON не знайдено");
+
           const cleanJson = responseText.substring(firstBrace, lastBrace + 1);
           return res.status(200).json(JSON.parse(cleanJson));
         }
@@ -152,13 +199,12 @@ export default async function handler(req, res) {
       }
     }
     throw lastError;
-
   } catch (error: any) {
     console.error("[CRITICAL HANDLER ERROR]:", error);
     // Повертаємо JSON, щоб фронтенд не бачив HTML-помилку "A server error..."
-    return res.status(500).json({ 
-      error: "Критична помилка сервера", 
-      details: error.message 
+    return res.status(500).json({
+      error: "Критична помилка сервера",
+      details: error.message,
     });
   }
 }
