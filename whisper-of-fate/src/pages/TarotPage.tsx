@@ -134,11 +134,9 @@ const ShareOverlay = ({
 
           <div className="flex-1 flex items-center justify-center w-full px-2">
             <div className="relative p-6 rounded-3xl bg-black/20 border border-white/5 backdrop-blur-sm w-full">
-              <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-magical-gold text-2xl"></span>
               <p className="text-white text-lg md:text-xl font-serif italic font-bold leading-snug text-center break-words">
                 {quote}
               </p>
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-magical-gold text-2xl rotate-180"></span>
             </div>
           </div>
 
@@ -199,11 +197,7 @@ export default function TarotPage() {
     setDrawnCards(selected);
 
     try {
-      const fullResponse = await getTarotInterpretation(
-        query,
-        selected,
-        isTrollMode,
-      );
+      const fullResponse = await getTarotInterpretation(query, selected, isTrollMode);
       const quoteMatch = fullResponse.match(/\[QUOTE\](.*?)\[\/QUOTE\]/s);
       let finalQuote = "";
       let finalText = fullResponse;
@@ -275,7 +269,7 @@ export default function TarotPage() {
             <h2 className="text-sm md:text-xl font-bold text-white/80 uppercase tracking-widest text-center md:text-left">
               Налаштування
             </h2>
-
+            
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5 w-full md:w-auto">
                 <button
@@ -336,13 +330,6 @@ export default function TarotPage() {
           </div>
         </section>
       )}
-
-      <div className="fixed inset-0 bg-magical-dark z-[200] flex flex-col items-center justify-center gap-4 backdrop-blur-sm">
-        <div className="w-10 h-10 border-2 border-magical-accent border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-magical-gold text-[10px] font-bold uppercase tracking-[0.3em] animate-pulse">
-          Зв'язок з астралом...
-        </p>
-      </div>
 
       {showShareOverlay && (
         <ShareOverlay
