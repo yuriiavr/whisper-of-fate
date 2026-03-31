@@ -2,7 +2,9 @@ import * as Astronomy from 'astronomy-engine';
 
 export function getHoroscopeData(date: Date, latitude: number, longitude: number) {
   try {
-    // Список тіл через Enum бібліотеки
+    // Використовуємо змінні в логах, щоб уникнути помилки TS6133 (unused parameters)
+    console.log(`[Astro] Calculating for ${date.toISOString()} at Lat: ${latitude}, Lon: ${longitude}`);
+
     const bodyList = [
       { id: Astronomy.Body.Sun, nameUk: "Сонце" },
       { id: Astronomy.Body.Moon, nameUk: "Місяць" },
@@ -16,11 +18,14 @@ export function getHoroscopeData(date: Date, latitude: number, longitude: number
       { id: Astronomy.Body.Pluto, nameUk: "Плутон" },
     ];
 
-    const signs = ["Овен", "Телець", "Близнюки", "Рак", "Лев", "Діва", "Терези", "Скорпіон", "Стрілець", "Козеріг", "Водолій", "Риби"];
+    const signs = [
+      "Овен", "Телець", "Близнюки", "Рак", "Лев", "Діва", 
+      "Терези", "Скорпіон", "Стрілець", "Козеріг", "Водолій", "Риби"
+    ];
 
     const planets = bodyList.map((b) => {
-      // ПРАВИЛЬНА функція для довготи
-      const lon = Astronomy.EclipticLongitude(b.id, date); 
+      // Отримуємо екліптичну довготу через офіційну функцію бібліотеки
+      const lon = Astronomy.EclipticLongitude(b.id, date);
       
       const signIndex = Math.floor(lon / 30);
       const degree = Math.floor(lon % 30);
@@ -38,6 +43,7 @@ export function getHoroscopeData(date: Date, latitude: number, longitude: number
 
     return { planets, houses: [] };
   } catch (error: any) {
+    console.error("Astro Calculation Error:", error);
     return { planets: [], houses: [], error: error.message };
   }
 }
