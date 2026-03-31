@@ -4,6 +4,8 @@ import {
   HarmBlockThreshold,
 } from "@google/generative-ai";
 
+import { Observer, Equator, Body } from "astronomy-engine";
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
@@ -77,21 +79,49 @@ export default async function handler(req, res) {
         ВАЖЛИВО: Почни з цитати в тегах [QUOTE] до 10 слів [/QUOTE].
       `;
     } else if (type === "natal") {
-      prompt = `
-        Ти — професійний астролог високого рівня.
-        Обчисли точне положення планет (градуси, знаки) та будинків для:
-        Ім'я: ${userData.name}, Дата: ${userData.date}, Час: ${userData.time}, Координати: ${coords.lat}, ${coords.lon}.
+      const date = new Date(`${userData.date}T${userData.time}Z`);
+      const observer = new Observer(coords.lat, coords.lon, 0);
 
-        ВАЖЛИВО: Використовуй систему Placidus. Якщо час невідомий, використовуй 12:00 (Cosmic).
-        
+      const signsUk = [
+        "Овен", "Телець", "Близнюки", "Рак", "Лев", "Діва",
+        "Терези", "Скорпіон", "Стрілець", "Козеріг", "Водолій", "Риби",
+      ];
+      
+      const targetBodies = [
+        "Sun", "Moon", "Mercury", "Venus", "Mars", 
+        "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto",
+      ];
+
+      const calculatedPlanets = targetBodies.map((name) => {
+        const equ = Equator(name as Body, date, observer, true, true);
+        let longitude = (equ.ra * 15) % 360;
+
+        const signIndex = Math.floor(longitude / 30) % 12;
+        const degreeInSign = Math.floor(longitude % 30);
+
+        return {
+          nameUk: name === "Sun" ? "Сонце" : name === "Moon" ? "Місяць" : name,
+          nameEn: name,
+          sign: signsUk[signIndex],
+          degree: `${degreeInSign}°`,
+          longitude: longitude,
+        };
+      });
+
+      const planetsString = calculatedPlanets
+        .map((p) => `${p.nameUk} у знаку ${p.sign} (${p.degree})`)
+        .join(", ");
+
+      prompt = `
+        Ти — професійний астролог. Твоє завдання — інтерпретувати готову натальну карту.
+        НЕ ОБЧИСЛЮЙ НІЧОГО САМОСТІЙНО, ВИКОРИСТОВУЙ ЦІ ДАНІ:
+        Користувач: ${userData.name}.
+        Положення планет: ${planetsString}.
+
         ПОВЕРНИ ВІДПОВІДЬ СУВОРО У ФОРМАТІ JSON:
         {
-          "planets": [
-            {"name": "Сонце", "sign": "Знак", "degree": "00°00'"},
-            {"name": "Місяць", "sign": "Знак", "degree": "00°00'"},
-            ... до Плутона + Асцендент
-          ],
-          "interpretation": "Детальний аналіз особистості в Markdown українською"
+          "planets": ${JSON.stringify(calculatedPlanets)},
+          "interpretation": "Детальний аналіз особистості в Markdown українською (Психологія, таланти, кар'єра)"
         }
       `;
     } else if (type === "synastry") {
@@ -127,9 +157,7 @@ export default async function handler(req, res) {
           return res.status(200).json(JSON.parse(cleanJson));
         }
       } catch (err) {
-        console.warn(
-          `Модель ${modelName} видала помилку, пробуємо наступну...`,
-        );
+        console.warn(`Модель ${modelName} видала помилку, пробуємо наступну...`);
         lastError = err;
         continue;
       }
@@ -137,8 +165,6 @@ export default async function handler(req, res) {
     throw lastError;
   } catch (error) {
     console.error("API Error:", error);
-    res
-      .status(500)
-      .json({ error: "Усі моделі наразі недоступні. Спробуйте пізніше." });
+    res.status(500).json({ error: "Усі моделі наразі недоступні. Спробуйте пізніше." });
   }
 }
