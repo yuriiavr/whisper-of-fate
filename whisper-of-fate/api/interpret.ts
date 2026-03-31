@@ -125,7 +125,6 @@ export default async function handler(req, res) {
           longitude: longitude,
         };
       });
-
       const planetsString = calculatedPlanets
         .map((p) => `${p.nameUk} у знаку ${p.sign} (${p.degree})`)
         .join(", ");
