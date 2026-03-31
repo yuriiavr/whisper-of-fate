@@ -4,13 +4,12 @@ import {
   HarmBlockThreshold,
 } from "@google/generative-ai";
 
-import { Observer, Equator, Body } from "astronomy-engine";
+import { Observer, Equator } from "astronomy-engine";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
-  const { type, userQuery, drawnCards, userData, coords, isTrollMode } =
-    req.body;
+  const { type, userQuery, drawnCards, userData, coords, isTrollMode } = req.body;
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
   const modelsToTry = [
@@ -82,49 +81,21 @@ export default async function handler(req, res) {
       const date = new Date(`${userData.date}T${userData.time}Z`);
       const observer = new Observer(coords.lat, coords.lon, 0);
 
-      const signsUk = [
-        "Овен",
-        "Телець",
-        "Близнюки",
-        "Рак",
-        "Лев",
-        "Діва",
-        "Терези",
-        "Скорпіон",
-        "Стрілець",
-        "Козеріг",
-        "Водолій",
-        "Риби",
-      ];
-
-      const targetBodies = [
-        "Sun",
-        "Moon",
-        "Mercury",
-        "Venus",
-        "Mars",
-        "Jupiter",
-        "Saturn",
-        "Uranus",
-        "Neptune",
-        "Pluto",
-      ];
+      const signsUk = ["Овен", "Телець", "Близнюки", "Рак", "Лев", "Діва", "Терези", "Скорпіон", "Стрілець", "Козеріг", "Водолій", "Риби"];
+      const targetBodies = ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"];
 
       const calculatedPlanets = targetBodies.map((name) => {
-        const equ = Equator(name as Body, date, observer, true, true);
+        const equ = Equator(name, date, observer, true, true);
         let longitude = (equ.ra * 15) % 360;
-
         const signIndex = Math.floor(longitude / 30) % 12;
         const degreeInSign = Math.floor(longitude % 30);
-
         return {
           nameUk: name === "Sun" ? "Сонце" : name === "Moon" ? "Місяць" : name,
-          nameEn: name,
           sign: signsUk[signIndex],
           degree: `${degreeInSign}°`,
-          longitude: longitude,
         };
       });
+
       const planetsString = calculatedPlanets
         .map((p) => `${p.nameUk} у знаку ${p.sign} (${p.degree})`)
         .join(", ");
@@ -140,7 +111,7 @@ export default async function handler(req, res) {
         }
       `;
     } else if (type === "synastry") {
-      const { userData, partnerData } = req.body;
+      const { partnerData } = req.body;
       prompt = `
         Ти — експерт з астрологічної сумісності (синастрії).
         Проаналізуй взаємодію двох натальних карт:
@@ -158,10 +129,13 @@ export default async function handler(req, res) {
     let lastError;
     for (const modelName of modelsToTry) {
       try {
+        const isJsonMode = type !== "tarot";
         const model = genAI.getGenerativeModel({
           model: modelName,
           safetySettings,
+          generationConfig: isJsonMode ? { responseMimeType: "application/json" } : {},
         });
+
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
 
@@ -172,18 +146,12 @@ export default async function handler(req, res) {
           return res.status(200).json(JSON.parse(cleanJson));
         }
       } catch (err) {
-        console.warn(
-          `Модель ${modelName} видала помилку, пробуємо наступну...`,
-        );
         lastError = err;
         continue;
       }
     }
     throw lastError;
   } catch (error) {
-    console.error("API Error:", error);
-    res
-      .status(500)
-      .json({ error: "Усі моделі наразі недоступні. Спробуйте пізніше." });
+    res.status(500).json({ error: "Сервіс наразі недоступний." });
   }
 }
