@@ -79,20 +79,24 @@ export default async function handler(req, res) {
     } else if (type === "natal") {
       prompt = `
         Ти — професійний астролог високого рівня.
-        Обчисли точне положення планет (градуси, знаки) та будинків для:
+        Обчисли точне положення планет та будинків для:
         Ім'я: ${userData.name}, Дата: ${userData.date}, Час: ${userData.time}, Координати: ${coords.lat}, ${coords.lon}.
 
-        ВАЖЛИВО: Використовуй систему Placidus. Якщо час невідомий, використовуй 12:00 (Cosmic).
-        
         ПОВЕРНИ ВІДПОВІДЬ СУВОРО У ФОРМАТІ JSON:
         {
           "planets": [
-            {"name": "Сонце", "sign": "Знак", "degree": "00°00'"},
-            {"name": "Місяць", "sign": "Знак", "degree": "00°00'"},
-            ... до Плутона + Асцендент
+            {
+              "nameUk": "Сонце", 
+              "sign": "Телець", 
+              "longitude": 57.5, 
+              "degree": "17°30'"
+            }
+            // ... і так далі для всіх планет до Плутона + Асцендент
           ],
           "interpretation": "Детальний аналіз особистості в Markdown українською"
         }
+        
+        ВАЖЛИВО: longitude має бути числом від 0 до 360 (0 = Овен, 90 = Рак і т.д.).
       `;
     } else if (type === "synastry") {
       const { userData, partnerData } = req.body;
