@@ -3,24 +3,27 @@ import {
   HarmCategory,
   HarmBlockThreshold,
 } from "@google/generative-ai";
-import { Body, EclipticLongitude } from "astronomy-engine";
+import * as Astronomy from "astronomy-engine"; // Імпортуємо все як об'єкт для надійності
 
 function getAstroData(dateStr: string, timeStr: string) {
   try {
+    // ВАЖЛИВО: Перевірка наявності даних
+    if (!dateStr || !timeStr) return [];
+    
     const date = new Date(`${dateStr}T${timeStr}:00Z`);
     if (isNaN(date.getTime())) return [];
 
     const bodies = [
-      { id: Body.Sun, nameUk: "Сонце" },
-      { id: Body.Moon, nameUk: "Місяць" },
-      { id: Body.Mercury, nameUk: "Меркурій" },
-      { id: Body.Venus, nameUk: "Венера" },
-      { id: Body.Mars, nameUk: "Марс" },
-      { id: Body.Jupiter, nameUk: "Юпітер" },
-      { id: Body.Saturn, nameUk: "Сатурн" },
-      { id: Body.Uranus, nameUk: "Уран" },
-      { id: Body.Neptune, nameUk: "Нептун" },
-      { id: Body.Pluto, nameUk: "Плутон" },
+      { id: "Sun", nameUk: "Сонце" },
+      { id: "Moon", nameUk: "Місяць" },
+      { id: "Mercury", nameUk: "Меркурій" },
+      { id: "Venus", nameUk: "Венера" },
+      { id: "Mars", nameUk: "Марс" },
+      { id: "Jupiter", nameUk: "Юпітер" },
+      { id: "Saturn", nameUk: "Сатурн" },
+      { id: "Uranus", nameUk: "Уран" },
+      { id: "Neptune", nameUk: "Нептун" },
+      { id: "Pluto", nameUk: "Плутон" },
     ];
 
     const signs = [
@@ -29,7 +32,9 @@ function getAstroData(dateStr: string, timeStr: string) {
     ];
 
     return bodies.map((b) => {
-      const lon = EclipticLongitude(b.id, date); 
+      // Використовуємо рядковий ключ для доступу до перерахування Body
+      const bodyId = (Astronomy.Body as any)[b.id];
+      const lon = Astronomy.EclipticLongitude(bodyId, date); 
       
       const signIndex = Math.floor(lon / 30);
       const degree = Math.floor(lon % 30);
@@ -51,10 +56,10 @@ function getAstroData(dateStr: string, timeStr: string) {
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
-  const { type, userQuery, drawnCards, userData, coords, isTrollMode } =
-    req.body;
+  const { type, userQuery, drawnCards, userData, coords, isTrollMode } = req.body;
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+  // ТВОЇ МОДЕЛІ (БЕЗ ЗМІН)
   const modelsToTry = [
     "gemini-3.1-flash-lite-preview",
     "gemini-2.5-flash-lite",
@@ -100,59 +105,33 @@ export default async function handler(req, res) {
         .join("\n\n");
 
       const styleInstruction = isTrollMode
-        ? `Ти — зухвалий, саркастичний та надзвичайно прямолінійний таролог-цинік з чорним гумором. 
-           Якщо запит абсурдний, вульгарний або тупий — відповідай у тому ж дусі. 
-           Будь гострим на язик, використовуй сленг, сарказм та грубі метафори.`
+        ? `Ти — зухвалий, саркастичний та надзвичайно прямолінійний таролог-цинік з чорним гумором.`
         : `Ти — досвідчений таролог та психолог. Твій тон мудрий, глибокий та етичний.`;
 
       prompt = `
         ${styleInstruction}
-        Користувач звернувся до тебе із запитом: "${userQuery}".
-        Використовуй колоду Райдера-Уейта.
-        
+        Користувач: "${userQuery}".
         Карти:
         ${cardsDescription}
-
-        Завдання:
-        1. Проаналізуй кожну карту.
-        2. Поєднай у цілісну історію.
-        3. Дай пораду.
-        4. Відповідай українською в Markdown.
-        ВАЖЛИВО: Почни з цитати в тегах [QUOTE] до 10 слів [/QUOTE].
+        Поверни відповідь українською в Markdown. Почни з [QUOTE]...[/QUOTE].
       `;
     } else if (type === "natal") {
       const calculatedPlanets = getAstroData(userData.date, userData.time);
 
       prompt = `
-        Ти — професійний астролог високого рівня.
-        Ось точні координати планет, розраховані астрономічним рушієм для:
-        Ім'я: ${userData.name}, Дата: ${userData.date}, Час: ${userData.time}, Координати: ${coords.lat}, ${coords.lon}.
-
-        Дані планет:
+        Ти — професійний астролог.
+        Дані планет (точні):
         ${JSON.stringify(calculatedPlanets, null, 2)}
 
-        ПОВЕРНИ ВІДПОВІДЬ СУВОРО У ФОРМАТІ JSON:
+        ПОВЕРНИ JSON СУВОРО:
         {
           "planets": ${JSON.stringify(calculatedPlanets)},
-          "interpretation": "Детальний аналіз особистості на основі наданих координат у Markdown українською"
+          "interpretation": "Markdown текст аналізу"
         }
-        
-        ВАЖЛИВО: Використовуй надані координати (longitude) для візуалізації. Не вигадуй нові положення планет.
       `;
     } else if (type === "synastry") {
-      const { userData, partnerData } = req.body;
-      prompt = `
-        Ти — експерт з астрологічної сумісності (синастрії).
-        Проаналізуй взаємодію двох натальних карт:
-        1. ${userData.name}: ${userData.date} ${userData.time}, ${userData.city}.
-        2. ${partnerData.name}: ${partnerData.date} ${partnerData.time}, ${partnerData.city}.
-
-        ПОВЕРНИ ВІДПОВІДЬ СУВОРО У ФОРМАТІ JSON:
-        {
-          "planets": [], 
-          "interpretation": "Аналіз сумісності (Карма, Побут, Кохання, Конфлікти) у Markdown українською"
-        }
-      `;
+      const { partnerData } = req.body;
+      prompt = `Синастрія для ${userData.name} та ${partnerData.name}. Поверни JSON з "planets": [] та "interpretation".`;
     }
 
     let lastError;
@@ -168,13 +147,14 @@ export default async function handler(req, res) {
         if (type === "tarot") {
           return res.status(200).json({ text: responseText });
         } else {
-          const cleanJson = responseText.replace(/```json|```/g, "").trim();
+          // Чистимо JSON від можливих артефактів моделі
+          const cleanJson = responseText.substring(
+            responseText.indexOf("{"),
+            responseText.lastIndexOf("}") + 1
+          );
           return res.status(200).json(JSON.parse(cleanJson));
         }
       } catch (err) {
-        console.warn(
-          `Модель ${modelName} видала помилку, пробуємо наступну...`,
-        );
         lastError = err;
         continue;
       }
@@ -182,8 +162,6 @@ export default async function handler(req, res) {
     throw lastError;
   } catch (error) {
     console.error("API Error:", error);
-    res
-      .status(500)
-      .json({ error: "Усі моделі наразі недоступні. Спробуйте пізніше." });
+    res.status(500).json({ error: "Помилка сервера. Перевірте консоль." });
   }
 }
