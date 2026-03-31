@@ -83,13 +83,31 @@ export default async function handler(req, res) {
       const observer = new Observer(coords.lat, coords.lon, 0);
 
       const signsUk = [
-        "Овен", "Телець", "Близнюки", "Рак", "Лев", "Діва",
-        "Терези", "Скорпіон", "Стрілець", "Козеріг", "Водолій", "Риби",
+        "Овен",
+        "Телець",
+        "Близнюки",
+        "Рак",
+        "Лев",
+        "Діва",
+        "Терези",
+        "Скорпіон",
+        "Стрілець",
+        "Козеріг",
+        "Водолій",
+        "Риби",
       ];
-      
+
       const targetBodies = [
-        "Sun", "Moon", "Mercury", "Venus", "Mars", 
-        "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto",
+        "Sun",
+        "Moon",
+        "Mercury",
+        "Venus",
+        "Mars",
+        "Jupiter",
+        "Saturn",
+        "Uranus",
+        "Neptune",
+        "Pluto",
       ];
 
       const calculatedPlanets = targetBodies.map((name) => {
@@ -114,13 +132,11 @@ export default async function handler(req, res) {
 
       prompt = `
         Ти — професійний астролог. Твоє завдання — інтерпретувати готову натальну карту.
-        НЕ ОБЧИСЛЮЙ НІЧОГО САМОСТІЙНО, ВИКОРИСТОВУЙ ЦІ ДАНІ:
         Користувач: ${userData.name}.
         Положення планет: ${planetsString}.
 
         ПОВЕРНИ ВІДПОВІДЬ СУВОРО У ФОРМАТІ JSON:
         {
-          "planets": ${JSON.stringify(calculatedPlanets)},
           "interpretation": "Детальний аналіз особистості в Markdown українською (Психологія, таланти, кар'єра)"
         }
       `;
@@ -157,7 +173,9 @@ export default async function handler(req, res) {
           return res.status(200).json(JSON.parse(cleanJson));
         }
       } catch (err) {
-        console.warn(`Модель ${modelName} видала помилку, пробуємо наступну...`);
+        console.warn(
+          `Модель ${modelName} видала помилку, пробуємо наступну...`,
+        );
         lastError = err;
         continue;
       }
@@ -165,6 +183,8 @@ export default async function handler(req, res) {
     throw lastError;
   } catch (error) {
     console.error("API Error:", error);
-    res.status(500).json({ error: "Усі моделі наразі недоступні. Спробуйте пізніше." });
+    res
+      .status(500)
+      .json({ error: "Усі моделі наразі недоступні. Спробуйте пізніше." });
   }
 }
