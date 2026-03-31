@@ -2,25 +2,21 @@ import * as Astronomy from 'astronomy-engine';
 
 export function getHoroscopeData(date: Date, latitude: number, longitude: number) {
   try {
-    // Використовуємо координати, щоб TS не сварився (TS6133)
-    // Додаємо їх у назву або просто логуємо
-    const locationInfo = `Lat: ${latitude.toFixed(2)}, Lon: ${longitude.toFixed(2)}`;
-    console.log(`[AstrologyService] Calculating for ${date.toISOString()} at ${locationInfo}`);
+    // Astronomy Engine працює з UTC. В консолі бачимо параметри, щоб TS не сварився.
+    console.log(`[Astro] Calc for ${date.toISOString()} at Lat:${latitude}, Lon:${longitude}`);
 
-    // Отримуємо доступ до перерахування тіл максимально безпечно
-    const Body = (Astronomy as any).Body || Astronomy; 
-    
-    const bodiesConfig = [
-      { id: Body.Sun, nameUk: "Сонце" },
-      { id: Body.Moon, nameUk: "Місяць" },
-      { id: Body.Mercury, nameUk: "Меркурій" },
-      { id: Body.Venus, nameUk: "Венера" },
-      { id: Body.Mars, nameUk: "Марс" },
-      { id: Body.Jupiter, nameUk: "Юпітер" },
-      { id: Body.Saturn, nameUk: "Сатурн" },
-      { id: Body.Uranus, nameUk: "Уран" },
-      { id: Body.Neptune, nameUk: "Нептун" },
-      { id: Body.Pluto, nameUk: "Плутон" },
+    // Визначаємо планети (Bodies)
+    const bodyList = [
+      { id: Astronomy.Body.Sun, nameUk: "Сонце" },
+      { id: Astronomy.Body.Moon, nameUk: "Місяць" },
+      { id: Astronomy.Body.Mercury, nameUk: "Меркурій" },
+      { id: Astronomy.Body.Venus, nameUk: "Венера" },
+      { id: Astronomy.Body.Mars, nameUk: "Марс" },
+      { id: Astronomy.Body.Jupiter, nameUk: "Юпітер" },
+      { id: Astronomy.Body.Saturn, nameUk: "Сатурн" },
+      { id: Astronomy.Body.Uranus, nameUk: "Уран" },
+      { id: Astronomy.Body.Neptune, nameUk: "Нептун" },
+      { id: Astronomy.Body.Pluto, nameUk: "Плутон" },
     ];
 
     const signs = [
@@ -28,14 +24,9 @@ export function getHoroscopeData(date: Date, latitude: number, longitude: number
       "Терези", "Скорпіон", "Стрілець", "Козеріг", "Водолій", "Риби"
     ];
 
-    const planets = bodiesConfig.map((b) => {
-      // ПЕРЕВІРКА: чи функція взагалі існує (дебаг для Vercel)
-      const getLon = (Astronomy as any).EclipticLongitude;
-      if (typeof getLon !== 'function') {
-        throw new Error("Astronomy.EclipticLongitude is not a function. Check imports.");
-      }
-
-      const lon = getLon(b.id, date);
+    const planets = bodyList.map((b) => {
+      // Отримуємо екліптичну довготу (0-360)
+      const lon = Astronomy.EclipticLongitude(b.id, date);
       
       const signIndex = Math.floor(lon / 30);
       const degree = Math.floor(lon % 30);
@@ -43,8 +34,9 @@ export function getHoroscopeData(date: Date, latitude: number, longitude: number
 
       return {
         name: b.nameUk,
+        nameUk: b.nameUk,
         sign: signs[signIndex],
-        longitude: lon, // Для твого SVG
+        longitude: lon, // Це критично для твого SVG в NatalPage
         degree: `${degree}°${minutes}'`,
         house: 1
       };
@@ -52,8 +44,7 @@ export function getHoroscopeData(date: Date, latitude: number, longitude: number
 
     return { planets, houses: [] };
   } catch (error: any) {
-    console.error("[AstrologyService] CRITICAL ERROR:", error.message);
-    // Повертаємо хоча б порожні дані, щоб бекенд не впав з 500
+    console.error("Astro Calculation Error:", error);
     return { planets: [], houses: [], error: error.message };
   }
 }

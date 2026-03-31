@@ -6,75 +6,7 @@ import {
 import * as Astronomy from "astronomy-engine";
 import { getHoroscopeData } from "../src/astrologyService";
 
-// Функція розрахунку з детальними логами
-function getAstroData(dateStr: string, timeStr: string) {
-  console.log("[DEBUG] Початок розрахунку астро-даних для:", {
-    dateStr,
-    timeStr,
-  });
-  try {
-    const date = new Date(`${dateStr}T${timeStr}:00Z`);
-    if (isNaN(date.getTime())) {
-      console.error("[ERROR] Невірна дата!");
-      return [];
-    }
-
-    const bodies = [
-      { id: "Sun", nameUk: "Сонце" },
-      { id: "Moon", nameUk: "Місяць" },
-      { id: "Mercury", nameUk: "Меркурій" },
-      { id: "Venus", nameUk: "Венера" },
-      { id: "Mars", nameUk: "Марс" },
-      { id: "Jupiter", nameUk: "Юпітер" },
-      { id: "Saturn", nameUk: "Сатурн" },
-      { id: "Uranus", nameUk: "Уран" },
-      { id: "Neptune", nameUk: "Нептун" },
-      { id: "Pluto", nameUk: "Плутон" },
-    ];
-
-    const signs = [
-      "Овен",
-      "Телець",
-      "Близнюки",
-      "Рак",
-      "Лев",
-      "Діва",
-      "Терези",
-      "Скорпіон",
-      "Стрілець",
-      "Козеріг",
-      "Водолій",
-      "Риби",
-    ];
-
-    const results = bodies.map((b) => {
-      const bodyId = (Astronomy.Body as any)[b.id];
-      if (bodyId === undefined) {
-        console.error(`[ERROR] Не знайдено Body ID для ${b.id}`);
-      }
-
-      const lon = Astronomy.EclipticLongitude(bodyId, date);
-      const signIndex = Math.floor(lon / 30);
-      const degree = Math.floor(lon % 30);
-      const minutes = Math.floor((lon - Math.floor(lon)) * 60);
-
-      return {
-        nameUk: b.nameUk,
-        sign: signs[signIndex],
-        longitude: lon,
-        degree: `${degree}°${minutes}'`,
-      };
-    });
-
-    console.log("[DEBUG] Розрахунок завершено успішно.");
-    return results;
-  } catch (e) {
-    console.error("[CRITICAL ERROR] Помилка в getAstroData:", e);
-    return [];
-  }
-}
-
-export default async function handler(req, res) {
+export default async function handler(req: any, res: any) {
   console.log("--- NEW REQUEST ---");
   console.log("[DEBUG] Method:", req.method, "Type:", req.body?.type);
 
@@ -82,11 +14,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  const { type, userQuery, drawnCards, userData, coords, isTrollMode } =
+  const { type, userQuery, drawnCards, userData, coords, isTrollMode, partnerData } =
     req.body;
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-  // Твої моделі, сука, на місці
+  // Твої моделі залишаються незмінними
   const modelsToTry = [
     "gemini-3.1-flash-lite-preview",
     "gemini-2.5-flash-lite",
@@ -113,6 +46,7 @@ export default async function handler(req, res) {
 
   try {
     let prompt = "";
+    let calculatedPlanets = [];
 
     if (type === "tarot") {
       const positions =
@@ -136,35 +70,43 @@ export default async function handler(req, res) {
         : `Ти — досвідчений таролог та психолог. Твій тон мудрий, глибокий та етичний.`;
 
       prompt = `${styleInstruction}\nЗапит: "${userQuery}".\nКарти:\n${cardsDescription}\nВідповідай українською в Markdown. Почни з цитати [QUOTE] до 10 слів [/QUOTE].`;
+    
     } else if (type === "natal") {
-      if (
-        !coords ||
-        typeof coords.lat !== "number" ||
-        typeof coords.lon !== "number"
-      ) {
+      if (!coords || typeof coords.lat !== "number" || typeof coords.lon !== "number") {
         return res.status(400).json({ error: "Missing coordinates (lat/lon)" });
       }
-      const data = getHoroscopeData(
+
+      // Використовуємо твій сервіс для точних розрахунків
+      const astroResult = getHoroscopeData(
         new Date(`${userData.date}T${userData.time}:00Z`),
         coords.lat,
-        coords.lon,
+        coords.lon
       );
-      console.log("[DEBUG] Розраховуємо натал для:", userData?.name);
-      const planets = getAstroData(userData.date, userData.time);
+      calculatedPlanets = astroResult.planets;
 
       prompt = `
         Ти — професійний астролог.
-        Дані планет: ${JSON.stringify(planets, null, 2)}
-        Обчисли натал для ${userData.name}.
+        Дані планет: ${JSON.stringify(calculatedPlanets, null, 2)}
+        Обчисли натальну карту для ${userData.name}, дата народження ${userData.date} ${userData.time}, місто ${userData.city}.
         ПОВЕРНИ JSON СУВОРО:
         {
-          "planets": ${JSON.stringify(planets)},
-          "interpretation": "Аналіз у Markdown"
+          "planets": ${JSON.stringify(calculatedPlanets)},
+          "interpretation": "Глибокий аналіз особистості, карми та потенціалу у Markdown"
         }
       `;
     } else if (type === "synastry") {
-      const { partnerData } = req.body;
-      prompt = `Аналіз сумісності: ${userData.name} та ${partnerData.name}. Поверни JSON з "planets": [] та "interpretation".`;
+      prompt = `
+        Ти — експерт з астрологічної сумісності (синастрії).
+        Проаналізуй взаємодію двох натальних карт:
+        1. ${userData.name}: ${userData.date} ${userData.time}, ${userData.city}.
+        2. ${partnerData.name}: ${partnerData.date} ${partnerData.time}, ${partnerData.city}.
+
+        ПОВЕРНИ ВІДПОВІДЬ СУВОРО У ФОРМАТІ JSON:
+        {
+          "planets": [], 
+          "interpretation": "Аналіз сумісності (Карма, Побут, Кохання, Конфлікти) у Markdown українською"
+        }
+      `;
     }
 
     let lastError;
@@ -178,30 +120,26 @@ export default async function handler(req, res) {
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
 
-        console.log(`[DEBUG] Відповідь від ${modelName} отримана.`);
-
         if (type === "tarot") {
           return res.status(200).json({ text: responseText });
         } else {
-          // Витягуємо JSON максимально надійно
           const firstBrace = responseText.indexOf("{");
           const lastBrace = responseText.lastIndexOf("}");
-          if (firstBrace === -1 || lastBrace === -1)
-            throw new Error("JSON не знайдено");
+          if (firstBrace === -1 || lastBrace === -1) throw new Error("JSON not found");
 
           const cleanJson = responseText.substring(firstBrace, lastBrace + 1);
           return res.status(200).json(JSON.parse(cleanJson));
         }
       } catch (err: any) {
-        console.warn(`[WARN] Модель ${modelName} видала помилку:`, err.message);
+        console.warn(`[WARN] Модель ${modelName} помилка:`, err.message);
         lastError = err;
         continue;
       }
     }
     throw lastError;
+
   } catch (error: any) {
     console.error("[CRITICAL HANDLER ERROR]:", error);
-    // Повертаємо JSON, щоб фронтенд не бачив HTML-помилку "A server error..."
     return res.status(500).json({
       error: "Критична помилка сервера",
       details: error.message,
