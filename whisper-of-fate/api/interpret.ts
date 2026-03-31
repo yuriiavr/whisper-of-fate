@@ -76,40 +76,36 @@ export default async function handler(req, res) {
         4. Відповідай українською в Markdown.
         ВАЖЛИВО: Почни з цитати в тегах [QUOTE] до 10 слів [/QUOTE].
       `;
-    } else if (type === "natal") {
+    }else if (type === "natal") {
+      const { planets } = req.body; 
+
       prompt = `
-        Ти — професійний астролог високого рівня.
-        Обчисли точне положення планет та будинків для:
-        Ім'я: ${userData.name}, Дата: ${userData.date}, Час: ${userData.time}, Координати: ${coords.lat}, ${coords.lon}.
+        Ти — професійний астролог високого рівня. 
+        Проаналізуй натальну карту на основі наданих точних координат планет.
+        Користувач: ${userData.name}, Дата: ${userData.date}, Час: ${userData.time}, Координати: ${coords.lat}, ${coords.lon}.
+
+        ДАНІ ПЛАНЕТ (використовуй їх для аналізу):
+        ${JSON.stringify(planets)}
 
         ПОВЕРНИ ВІДПОВІДЬ СУВОРО У ФОРМАТІ JSON:
         {
-          "planets": [
-            {
-              "nameUk": "Сонце", 
-              "sign": "Телець", 
-              "longitude": 57.5, 
-              "degree": "17°30'"
-            }
-            // ... і так далі для всіх планет до Плутона + Асцендент
-          ],
-          "interpretation": "Детальний аналіз особистості в Markdown українською"
+          "planets": ${JSON.stringify(planets)}, 
+          "interpretation": "Детальний аналіз особистості (Психотип, Таланти, Кар'єра, Кохання) у форматі Markdown українською мовою. Використовуй заголовки, списки та емодзі."
         }
-        
-        ВАЖЛИВО: longitude має бути числом від 0 до 360 (0 = Овен, 90 = Рак і т.д.).
       `;
     } else if (type === "synastry") {
-      const { userData, partnerData } = req.body;
+      const { planetsP1, planetsP2, partnerData } = req.body;
+
       prompt = `
         Ти — експерт з астрологічної сумісності (синастрії).
-        Проаналізуй взаємодію двох натальних карт:
-        1. ${userData.name}: ${userData.date} ${userData.time}, ${userData.city}.
-        2. ${partnerData.name}: ${partnerData.date} ${partnerData.time}, ${partnerData.city}.
+        Проаналізуй взаємодію двох натальних карт на основі наданих точних координат:
+        1. ${userData.name}: ${JSON.stringify(planetsP1)}
+        2. ${partnerData.name}: ${JSON.stringify(planetsP2)}
 
         ПОВЕРНИ ВІДПОВІДЬ СУВОРО У ФОРМАТІ JSON:
         {
-          "planets": [], 
-          "interpretation": "Аналіз сумісності (Карма, Побут, Кохання, Конфлікти) у Markdown українською"
+          "planets": ${JSON.stringify(planetsP1)}, 
+          "interpretation": "Глибокий аналіз сумісності (Кармічні вузли, Емоційний зв'язок, Сексуальна енергія, Побутові конфлікти) у Markdown українською мовою."
         }
       `;
     }
