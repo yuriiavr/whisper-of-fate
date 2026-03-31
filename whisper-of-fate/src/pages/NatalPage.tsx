@@ -62,31 +62,26 @@ export default function AstroPage() {
     }
   };
 
-const calculateAstro = async () => {
+  const calculateAstro = async () => {
   setIsLoading(true);
   setResult(null);
   try {
-    let response; // Міняємо назву для ясності
+    let data;
     if (mode === "natal") {
       if (!p1.coords) return;
-      response = await getNatalInterpretation(p1, p1.coords);
+      data = await getNatalInterpretation(p1, p1.coords);
     } else {
       if (!p1.coords || !p2.coords) return;
-      response = await getSynastryInterpretation(p1, p2);
+      data = await getSynastryInterpretation(p1, p2);
     }
-
-    // ЛОГ ПРЯМО ТУТ, ЩОБ БАЧИТИ, ЩО ПРИЙШЛО
-    console.log("Raw Response from server:", response);
-
-    if (response.error) {
-      alert("Помилка: " + (response.details || "Невідома помилка"));
+    if (data.error) {
+      alert("Помилка AI: " + (data.details || "Спробуйте ще раз"));
     } else {
-      setResult(response);
+      setResult(data);
     }
   } catch (err) {
-    // ОСЬ ТУТ вилітає твоя помилка про 'A'
-    console.error("Frontend Parse Error:", err);
-    alert("Сервер повернув не JSON. Скоріш за все, 500 помилка. Перевір Network tab!");
+    console.error("Frontend Error:", err);
+    alert("Не вдалося отримати дані від сервера.");
   } finally {
     setIsLoading(false);
   }
