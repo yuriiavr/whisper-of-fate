@@ -14,6 +14,14 @@ export async function getNatalInterpretation(userData: any, coords: {lat: number
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ type: 'natal', userData, coords })
   });
+
+  if (!res.ok) {
+    const errorBody = await res.text(); // Отримуємо текст помилки (те саме "A server error...")
+    console.error("--- СУКА, ОСЬ ТВОЯ ПОМИЛКА: ---");
+    console.error(errorBody); // ЦЕ ВИВЕДЕ ТЕКСТ У КОНСОЛЬ БРАУЗЕРА
+    throw new Error(`Server returned ${res.status}: ${errorBody.slice(0, 100)}...`);
+  }
+  
   return await response.json(); 
 }
 
