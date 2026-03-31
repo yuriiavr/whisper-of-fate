@@ -11,9 +11,6 @@ export default async function handler(req, res) {
     req.body;
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-  console.log(`--- API ROUTE START [${type}] ---`);
-  console.log("Planets received from frontend:", planets)
-
   const modelsToTry = [
     "gemini-3.1-flash-lite-preview",
     "gemini-2.5-flash-lite",
