@@ -4,12 +4,11 @@ import {
   HarmBlockThreshold,
 } from "@google/generative-ai";
 
-import { Observer, Equator } from "astronomy-engine";
-
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
-  const { type, userQuery, drawnCards, userData, coords, isTrollMode } = req.body;
+  const { type, userQuery, drawnCards, userData, coords, isTrollMode } =
+    req.body;
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
   const modelsToTry = [
@@ -78,40 +77,25 @@ export default async function handler(req, res) {
         ВАЖЛИВО: Почни з цитати в тегах [QUOTE] до 10 слів [/QUOTE].
       `;
     } else if (type === "natal") {
-      const date = new Date(`${userData.date}T${userData.time}Z`);
-      const observer = new Observer(coords.lat, coords.lon, 0);
-
-      const signsUk = ["Овен", "Телець", "Близнюки", "Рак", "Лев", "Діва", "Терези", "Скорпіон", "Стрілець", "Козеріг", "Водолій", "Риби"];
-      const targetBodies = ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"];
-
-      const calculatedPlanets = targetBodies.map((name) => {
-        const equ = Equator(name, date, observer, true, true);
-        let longitude = (equ.ra * 15) % 360;
-        const signIndex = Math.floor(longitude / 30) % 12;
-        const degreeInSign = Math.floor(longitude % 30);
-        return {
-          nameUk: name === "Sun" ? "Сонце" : name === "Moon" ? "Місяць" : name,
-          sign: signsUk[signIndex],
-          degree: `${degreeInSign}°`,
-        };
-      });
-
-      const planetsString = calculatedPlanets
-        .map((p) => `${p.nameUk} у знаку ${p.sign} (${p.degree})`)
-        .join(", ");
-
       prompt = `
-        Ти — професійний астролог. Твоє завдання — інтерпретувати готову натальну карту.
-        Користувач: ${userData.name}.
-        Положення планет: ${planetsString}.
+        Ти — професійний астролог високого рівня.
+        Обчисли точне положення планет (градуси, знаки) та будинків для:
+        Ім'я: ${userData.name}, Дата: ${userData.date}, Час: ${userData.time}, Координати: ${coords.lat}, ${coords.lon}.
 
+        ВАЖЛИВО: Використовуй систему Placidus. Якщо час невідомий, використовуй 12:00 (Cosmic).
+        
         ПОВЕРНИ ВІДПОВІДЬ СУВОРО У ФОРМАТІ JSON:
         {
-          "interpretation": "Детальний аналіз особистості в Markdown українською (Психологія, таланти, кар'єра)"
+          "planets": [
+            {"name": "Сонце", "sign": "Знак", "degree": "00°00'"},
+            {"name": "Місяць", "sign": "Знак", "degree": "00°00'"},
+            ... до Плутона + Асцендент
+          ],
+          "interpretation": "Детальний аналіз особистості в Markdown українською"
         }
       `;
     } else if (type === "synastry") {
-      const { partnerData } = req.body;
+      const { userData, partnerData } = req.body;
       prompt = `
         Ти — експерт з астрологічної сумісності (синастрії).
         Проаналізуй взаємодію двох натальних карт:
@@ -129,13 +113,10 @@ export default async function handler(req, res) {
     let lastError;
     for (const modelName of modelsToTry) {
       try {
-        const isJsonMode = type !== "tarot";
         const model = genAI.getGenerativeModel({
           model: modelName,
           safetySettings,
-          generationConfig: isJsonMode ? { responseMimeType: "application/json" } : {},
         });
-
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
 
@@ -146,12 +127,18 @@ export default async function handler(req, res) {
           return res.status(200).json(JSON.parse(cleanJson));
         }
       } catch (err) {
+        console.warn(
+          `Модель ${modelName} видала помилку, пробуємо наступну...`,
+        );
         lastError = err;
         continue;
       }
     }
     throw lastError;
   } catch (error) {
-    res.status(500).json({ error: "Сервіс наразі недоступний." });
+    console.error("API Error:", error);
+    res
+      .status(500)
+      .json({ error: "Усі моделі наразі недоступні. Спробуйте пізніше." });
   }
 }
