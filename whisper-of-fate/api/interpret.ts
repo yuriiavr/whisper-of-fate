@@ -7,9 +7,12 @@ import {
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
-  const { type, userQuery, drawnCards, userData, coords, isTrollMode } =
+  const { type, userQuery, drawnCards, userData, coords, isTrollMode, planets } =
     req.body;
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+  console.log(`--- API ROUTE START [${type}] ---`);
+  console.log("Planets received from frontend:", planets)
 
   const modelsToTry = [
     "gemini-3.1-flash-lite-preview",
@@ -81,6 +84,7 @@ export default async function handler(req, res) {
 
       prompt = `
         Ти — професійний астролог високого рівня. 
+        Використовуй ці дані планет: ${JSON.stringify(planets)}
         Проаналізуй натальну карту на основі наданих точних координат планет.
         Користувач: ${userData.name}, Дата: ${userData.date}, Час: ${userData.time}, Координати: ${coords.lat}, ${coords.lon}.
 
